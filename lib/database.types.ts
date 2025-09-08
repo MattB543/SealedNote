@@ -100,6 +100,35 @@ export interface Database {
           created_at?: string
         }
       }
+      scheduled_feedback: {
+        Row: {
+          id: string
+          user_id: string
+          encrypted_content: string
+          encrypted_reasoning: string
+          is_mean: boolean
+          deliver_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          encrypted_content: string
+          encrypted_reasoning: string
+          is_mean?: boolean
+          deliver_at: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          encrypted_content?: string
+          encrypted_reasoning?: string
+          is_mean?: boolean
+          deliver_at?: string
+          created_at?: string
+        }
+      }
     }
   }
 }

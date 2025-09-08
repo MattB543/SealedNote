@@ -49,6 +49,9 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_KEY=your_supabase_service_key
 
+# Server-side key used to encrypt API keys at rest (must be 32 bytes, base64-encoded)
+KEY_ENCRYPTION_KEY=base64-32-byte-secret
+
 # App URL (used for links in emails and OpenRouter referer)
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
@@ -99,6 +102,24 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 ### Database Migration
 
 The SQL schema in `supabase/schema.sql` contains all necessary tables and RLS policies.
+
+### Delayed delivery & Cron
+
+To enable scheduled delivery:
+
+1. Add environment variables:
+   - `CRON_SECRET=<any random string>` (used as Bearer token for cron auth)
+   - (optional) `DISPATCH_BATCH_LIMIT=100`
+2. If deploying to Vercel, keep `vercel.json` in the repo; configure the Vercel Cron to call `/api/feedback/dispatch-due` (e.g., every 2 minutes). Vercel will send `Authorization: Bearer ${CRON_SECRET}`; the endpoint validates this header.
+3. The app stores scheduled items in `scheduled_feedback`, and the cron moves due rows into `feedback` and emails the recipient.
+
+### Sender AI Coach
+
+- The `/api/feedback/analyze` endpoint runs a preflight that:
+  - flags anonymity risks and proposes a scrubbed rewrite,
+  - suggests ways to make feedback more constructive/actionable,
+  - may propose a higher-quality rewrite.
+- If the recipient disabled AI filtering, the coach falls back to local heuristics; raw content never leaves the browser.
 
 ## Tech Stack
 

@@ -79,3 +79,22 @@ CREATE INDEX idx_feedback_created_at ON public.feedback(created_at);
 -- Ensure only one active link per user
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_active_feedback_link_per_user ON public.feedback_links(user_id) WHERE is_active;
 CREATE INDEX idx_users_username ON public.users(username);
+
+-- Scheduled (delayed) delivery storage (encrypted-at-rest fields only)
+CREATE TABLE IF NOT EXISTS public.scheduled_feedback (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  encrypted_content TEXT NOT NULL,
+  encrypted_reasoning TEXT NOT NULL,
+  is_mean BOOLEAN NOT NULL DEFAULT false,
+  deliver_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.scheduled_feedback ENABLE ROW LEVEL SECURITY;
+
+-- RLS: access only via service role (no SELECT/INSERT/UPDATE policies)
+-- (Server uses SUPABASE_SERVICE_KEY.)
+
+CREATE INDEX IF NOT EXISTS idx_scheduled_feedback_deliver_at ON public.scheduled_feedback(deliver_at);
+CREATE INDEX IF NOT EXISTS idx_scheduled_feedback_user_id ON public.scheduled_feedback(user_id);

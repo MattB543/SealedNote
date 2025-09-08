@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
       isEncrypted,
       encrypted_content,
       encrypted_reasoning,
+      deliverAt,
     } = await request.json();
 
     // Validate input
@@ -180,26 +181,46 @@ export async function POST(request: NextRequest) {
       isMean = classification.is_mean;
     }
 
-    // Save ONLY encrypted version
-    const { error: insertError } = await (supabase as any)
-      .from("feedback")
-      .insert({
-        user_id: recipient.id,
-        encrypted_content: encryptedContentOut,
-        encrypted_reasoning: encryptedReasoningOut,
-        is_mean: isMean,
-        status: "unread",
-      });
-
-    if (insertError) {
-      throw insertError;
+    // If scheduling requested and valid, store in scheduled_feedback and skip email
+    let scheduledAtIso: string | null = null;
+    if (deliverAt) {
+      const when = new Date(deliverAt);
+      const nowDt = new Date();
+      const max = new Date(nowDt.getTime() + 14 * 24 * 60 * 60 * 1000);
+      if (!Number.isNaN(when.getTime()) && when > nowDt && when <= max) {
+        scheduledAtIso = when.toISOString();
+      }
     }
 
-    // Step 6: Send notification email (if configured)
-    await sendFeedbackEmail(recipient.email, isMean);
+    if (scheduledAtIso) {
+      const { error: sErr } = await (supabase as any)
+        .from("scheduled_feedback")
+        .insert({
+          user_id: recipient.id,
+          encrypted_content: encryptedContentOut,
+          encrypted_reasoning: encryptedReasoningOut,
+          is_mean: isMean,
+          deliver_at: scheduledAtIso,
+        });
+      if (sErr) throw sErr;
+      return NextResponse.json({ success: true, scheduledAt: scheduledAtIso });
+    } else {
+      // Save immediately to inbox
+      const { error: insertError } = await (supabase as any)
+        .from("feedback")
+        .insert({
+          user_id: recipient.id,
+          encrypted_content: encryptedContentOut,
+          encrypted_reasoning: encryptedReasoningOut,
+          is_mean: isMean,
+          status: "unread",
+        });
+      if (insertError) throw insertError;
 
-    // Content is now gone from memory, never logged, never saved raw
-    return NextResponse.json({ success: true });
+      // Notify recipient (best-effort)
+      await sendFeedbackEmail(recipient.email, isMean);
+      return NextResponse.json({ success: true });
+    }
   } catch (error: any) {
     return NextResponse.json(
       { error: "Failed to submit feedback" },
