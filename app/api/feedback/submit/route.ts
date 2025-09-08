@@ -15,13 +15,14 @@ const MAX_BUCKETS = 50_000;
 
 function pruneBuckets() {
   const now = Date.now();
-  for (const [k, v] of buckets) if (now >= v.resetAt) buckets.delete(k);
+  buckets.forEach((v, k) => {
+    if (now >= v.resetAt) buckets.delete(k);
+  });
   if (buckets.size > MAX_BUCKETS) {
     const excess = buckets.size - MAX_BUCKETS;
-    let i = 0;
-    for (const k of buckets.keys()) {
-      buckets.delete(k);
-      if (++i >= excess) break;
+    const keys = Array.from(buckets.keys());
+    for (let i = 0; i < excess && i < keys.length; i++) {
+      buckets.delete(keys[i]);
     }
   }
 }
