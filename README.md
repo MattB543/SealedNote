@@ -127,7 +127,7 @@ To enable scheduled delivery:
 - **Backend**: Next.js API Routes
 - **Database**: Supabase (PostgreSQL)
 - **Authentication**: Supabase Auth (Passwordless Magic Links)
-- **AI**: OpenRouter API (Llama 3.1)
+- **AI**: OpenRouter API (GPT-5-mini)
 - **Email**: Postmark (simple text emails on new feedback)
 - **Encryption**: RSA-OAEP with SHA-256
 

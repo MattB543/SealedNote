@@ -218,13 +218,13 @@ export default function SubmitFeedback() {
       ],
     } as const;
     const needs_improvement =
-      missing.constructive || missing.actionable || missing.example_present;
+      missing.constructive || missing.actionable || missing.example_missing;
     const suggestions = [
       missing.constructive &&
         "Briefly state impact: how did this help/hurt outcomes?",
       missing.actionable &&
         "Offer one concrete next step starting with 'Consider…' or 'Next time…'.",
-      missing.example_present &&
+      missing.example_missing &&
         "Add one neutral example ('For example, during…').",
     ].filter(Boolean) as string[];
     const questions_to_help = [
