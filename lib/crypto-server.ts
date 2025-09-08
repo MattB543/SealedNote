@@ -6,7 +6,7 @@ export function encryptWithPublicKey(text: string, publicKey: string): string {
   try {
     // 1) Generate a random AES key and IV
     const aesKey = crypto.randomBytes(32)
-    const iv = crypto.randomBytes(16)
+    const iv = crypto.randomBytes(12)
 
     // 2) Encrypt the message with AES-GCM
     const cipher = crypto.createCipheriv('aes-256-gcm', aesKey, iv)
@@ -24,7 +24,7 @@ export function encryptWithPublicKey(text: string, publicKey: string): string {
       aesKey
     )
 
-    // 4) Combine: [2 bytes key length][encryptedKey][iv(16)][authTag(16)][ciphertext]
+    // 4) Combine: [2 bytes key length][encryptedKey][iv(12)][authTag(16)][ciphertext]
     const combined = Buffer.concat([
       Buffer.from([encryptedKey.length >> 8, encryptedKey.length & 0xff]),
       encryptedKey,
@@ -38,4 +38,3 @@ export function encryptWithPublicKey(text: string, publicKey: string): string {
     throw new Error('Failed to encrypt content')
   }
 }
-

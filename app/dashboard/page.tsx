@@ -41,7 +41,6 @@ export default function Dashboard() {
   const [decryptMethod, setDecryptMethod] = useState<"password" | "key">(
     "password"
   );
-  const [rememberKey, setRememberKey] = useState(false);
   const [canUsePassword, setCanUsePassword] = useState(false);
 
   useEffect(() => {
@@ -177,26 +176,8 @@ export default function Dashboard() {
 
       setPrivateKey(privateKeyInput);
 
-      // Decrypt all feedback first
+      // Decrypt all feedback
       await decryptAllFeedback(privateKeyInput);
-
-      // Optionally save to localStorage
-      if (rememberKey && user?.salt) {
-        if (!password || password.length < 8) {
-          setError(
-            "Password must be at least 8 characters to save key in this browser"
-          );
-        } else {
-          const encryptedKey =
-            await browserCrypto.encryptPrivateKeyWithPassword(
-              privateKeyInput,
-              password,
-              user.salt
-            );
-          localStorage.setItem("ff_encrypted_private_key", encryptedKey);
-          localStorage.setItem("ff_salt", user.salt);
-        }
-      }
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -278,7 +259,31 @@ export default function Dashboard() {
     <div className="min-h-screen p-4 pb-20">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h1 className="text-2xl font-bold mb-4">Your Feedback Dashboard</h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold">Your Feedback Dashboard</h1>
+            <Link
+              href="/settings"
+              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="icon icon-tabler icons-tabler-outline icon-tabler-settings"
+              >
+                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                <path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z" />
+                <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" />
+              </svg>
+              Settings
+            </Link>
+          </div>
 
           <div className="flex items-center gap-2 mb-6 p-3 bg-gray-50 rounded-lg">
             <span className="text-sm text-gray-600">Your feedback link:</span>
@@ -290,6 +295,12 @@ export default function Dashboard() {
               className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
             >
               {copied ? "Copied!" : "Copy"}
+            </button>
+            <button
+              onClick={() => window.open(feedbackLink, "_blank")}
+              className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+            >
+              Open
             </button>
           </div>
 
@@ -312,15 +323,8 @@ export default function Dashboard() {
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >
-              Possibly Mean Feedback{" "}
-              {unreadMean > 0 && `(${unreadMean} unread)`}
+              Filtered Feedback {unreadMean > 0 && `(${unreadMean} unread)`}
             </button>
-            <Link
-              href="/settings"
-              className="ml-auto px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-            >
-              Settings
-            </Link>
           </div>
 
           {!privateKey && feedback.length > 0 && (
@@ -387,29 +391,6 @@ export default function Dashboard() {
                       onChange={(e) => setPrivateKeyInput(e.target.value)}
                       className="w-full h-24 p-2 text-xs font-mono border rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-
-                    {user?.salt && (
-                      <div className="mb-3">
-                        <label className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={rememberKey}
-                            onChange={(e) => setRememberKey(e.target.checked)}
-                          />
-                          Save key in this browser
-                        </label>
-                        {rememberKey && (
-                          <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Enter password (min 8 chars) to encrypt key for storage"
-                            minLength={8}
-                            className="mt-2 w-full px-3 py-2 border rounded-lg text-sm"
-                          />
-                        )}
-                      </div>
-                    )}
 
                     <button
                       onClick={handleDecryptWithKey}

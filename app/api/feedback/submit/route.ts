@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { encryptWithPublicKey } from "@/lib/crypto-server";
+import { decryptAtRest } from "@/lib/keystore";
 import { sendFeedbackEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
@@ -10,17 +11,41 @@ type Bucket = { count: number; resetAt: number };
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
 const RATE_LIMIT_MAX = 10; // per IP+token per minute
 const buckets = new Map<string, Bucket>();
+const MAX_BUCKETS = 50_000;
+
+function pruneBuckets() {
+  const now = Date.now();
+  for (const [k, v] of buckets) if (now >= v.resetAt) buckets.delete(k);
+  if (buckets.size > MAX_BUCKETS) {
+    const excess = buckets.size - MAX_BUCKETS;
+    let i = 0;
+    for (const k of buckets.keys()) {
+      buckets.delete(k);
+      if (++i >= excess) break;
+    }
+  }
+}
 
 function getClientIp(req: NextRequest): string {
-  const xf = req.headers.get("x-forwarded-for");
-  if (xf) return xf.split(",")[0].trim();
-  const realIp = req.headers.get("x-real-ip");
-  return realIp || "unknown";
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0].trim();
+
+  const anyReq = req as any;
+  if (anyReq.ip) return String(anyReq.ip);
+
+  const xr = req.headers.get("x-real-ip");
+  if (xr) return xr;
+
+  const cf = req.headers.get("cf-connecting-ip");
+  if (cf) return cf;
+
+  return "unknown";
 }
 
 // THE AUDITABLE ENDPOINT - This is where all feedback processing happens
 export async function POST(request: NextRequest) {
   try {
+    pruneBuckets();
     const {
       content,
       shareToken,
@@ -135,10 +160,16 @@ export async function POST(request: NextRequest) {
       isMean = false;
     } else {
       // Server-side classification + encryption path
+      let userKey: string | null = null;
+      if (recipient.openrouter_api_key) {
+        try {
+          userKey = decryptAtRest(recipient.openrouter_api_key);
+        } catch {}
+      }
       const classification = await classifyWithOpenRouter(
         content,
         recipient.custom_prompt,
-        recipient.openrouter_api_key || process.env.OPENROUTER_API_KEY
+        userKey || process.env.OPENROUTER_API_KEY
       );
       encryptedContentOut = encryptWithPublicKey(content, recipient.public_key);
       encryptedReasoningOut = encryptWithPublicKey(

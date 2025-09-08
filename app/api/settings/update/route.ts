@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
+import { encryptAtRest } from '@/lib/keystore'
 
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   try {
-    const { custom_prompt } = await request.json()
+    const { custom_prompt, openrouter_api_key } = await request.json()
     
     const supabase = createRouteHandlerClient({ cookies })
     
@@ -20,10 +21,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update user settings
+    // Build update
+    const update: any = {}
+    if (typeof custom_prompt !== 'undefined') update.custom_prompt = custom_prompt
+    if (typeof openrouter_api_key !== 'undefined') {
+      update.openrouter_api_key = openrouter_api_key
+        ? encryptAtRest(openrouter_api_key)
+        : null
+    }
+
+    if (Object.keys(update).length === 0) {
+      return NextResponse.json({ success: true })
+    }
+
     const { error: updateError } = await supabase
       .from('users')
-      .update({ custom_prompt })
+      .update(update)
       .eq('id', user.id)
 
     if (updateError) {

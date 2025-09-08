@@ -20,10 +20,11 @@ export default function SignIn() {
 
       if (!email) throw new Error('Enter your email')
 
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${appUrl}/auth/callback`,
         },
       })
       if (error) throw error

@@ -59,10 +59,6 @@ export default function Setup() {
         username,
         public_key: publicKey,
         salt,
-        openrouter_api_key:
-          openRouterKey && openRouterKey.trim().length > 0
-            ? openRouterKey.trim()
-            : null,
         ai_filter_enabled: aiEnabled,
       });
 
@@ -71,6 +67,15 @@ export default function Setup() {
           throw new Error("Username already taken");
         }
         throw dbError;
+      }
+
+      // If personal OpenRouter key provided, store via server to encrypt at rest
+      if (openRouterKey && openRouterKey.trim().length > 0) {
+        await fetch('/api/settings/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ openrouter_api_key: openRouterKey.trim() }),
+        })
       }
 
       // Generate initial feedback link: use username by default

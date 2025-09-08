@@ -57,7 +57,7 @@ export default function Settings() {
       setCustomPrompt(userData.custom_prompt || PROMPT_EXAMPLES.balanced);
       if (userData.openrouter_api_key) {
         setHasOpenRouterKey(true);
-        setOpenRouterKey(`${userData.openrouter_api_key.slice(0, 12)}…`);
+        setOpenRouterKey("••••••••••••…"); // purely a display mask
       } else {
         setHasOpenRouterKey(false);
         setOpenRouterKey("");
@@ -94,14 +94,13 @@ export default function Settings() {
     try {
       setSaving(true);
       setMessage(null);
-
-      const { error } = await supabase
-        .from("users")
-        .update({ custom_prompt: customPrompt })
-        .eq("id", user.id);
-
-      if (error) throw error;
-
+      const res = await fetch("/api/settings/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ custom_prompt: customPrompt }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
       setMessage("Filter settings updated successfully!");
       setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
@@ -115,23 +114,22 @@ export default function Settings() {
     try {
       setSaving(true);
       setMessage(null);
-
       const isMasked = hasOpenRouterKey && openRouterKey.endsWith("…");
       const valueToStore = isMasked ? undefined : openRouterKey.trim() || null;
-
       if (valueToStore !== undefined) {
-        const { error } = await supabase
-          .from("users")
-          .update({ openrouter_api_key: valueToStore })
-          .eq("id", user.id);
-        if (error) throw error;
+        const res = await fetch("/api/settings/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ openrouter_api_key: valueToStore }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed");
         setMessage(
           valueToStore ? "OpenRouter key saved" : "OpenRouter key removed"
         );
       } else {
         setMessage("No changes to OpenRouter key");
       }
-
       await loadUserData();
       setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
@@ -233,206 +231,201 @@ export default function Settings() {
   return (
     <div className="min-h-screen p-4 pb-20">
       <div className="max-w-2xl mx-auto">
-        <div className="mb-6">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Settings</h1>
           <Link href="/dashboard" className="text-blue-600 hover:underline">
             ← Back to Dashboard
           </Link>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h1 className="text-2xl font-bold mb-6">Settings</h1>
+        {message && (
+          <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">
+            {message}
+          </div>
+        )}
 
-          {message && (
-            <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">
-              {message}
+        {/* Custom Filter Instructions */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4">
+            Custom Filter Instructions
+          </h2>
+          <div className="flex items-center gap-3 mb-3">
+            <label className="text-sm font-medium">AI Filtering</label>
+            <span
+              className={`text-xs px-2 py-1 rounded ${
+                user.ai_filter_enabled
+                  ? "bg-green-100 text-green-700"
+                  : "bg-gray-200 text-gray-700"
+              }`}
+            >
+              {user.ai_filter_enabled ? "Enabled" : "Disabled"}
+            </span>
+            <button
+              onClick={async () => {
+                const next = !user.ai_filter_enabled;
+                const { error } = await supabase
+                  .from("users")
+                  .update({ ai_filter_enabled: next })
+                  .eq("id", user.id);
+                if (!error) {
+                  setUser({ ...user, ai_filter_enabled: next });
+                  setMessage(`AI filtering ${next ? "enabled" : "disabled"}`);
+                  setTimeout(() => setMessage(null), 2000);
+                }
+              }}
+              className="ml-auto px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
+            >
+              {user.ai_filter_enabled ? "Disable" : "Enable"}
+            </button>
+          </div>
+          <p className="text-sm text-gray-600 mb-3">
+            Customize how the AI filters feedback before it reaches you
+          </p>
+
+          <textarea
+            value={customPrompt}
+            onChange={(e) => setCustomPrompt(e.target.value)}
+            className="w-full h-24 px-3 py-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter your custom filtering instructions..."
+          />
+
+          <button
+            onClick={saveCustomPrompt}
+            disabled={saving}
+            className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save Filter Settings"}
+          </button>
+        </div>
+
+        {/* Feedback Link */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4">Feedback Link</h2>
+          <div className="p-3 bg-gray-50 rounded-lg mb-3">
+            <p className="text-sm text-gray-600 mb-1">Current link:</p>
+            <code className="text-sm">{feedbackLink}</code>
+          </div>
+          <button
+            onClick={generateNewLink}
+            className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
+          >
+            Generate New Link
+          </button>
+          <p className="text-xs text-gray-500 mt-2">
+            This will disable your old link
+          </p>
+        </div>
+
+        {/* OpenRouter Key */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4">OpenRouter API Key</h2>
+          {hasOpenRouterKey ? (
+            <div className="mb-3 p-3 bg-green-50 rounded">
+              <p className="text-sm text-green-800">
+                Using personal key:{" "}
+                <code className="bg-white px-1 py-0.5 rounded">
+                  {openRouterKey}
+                </code>
+              </p>
+            </div>
+          ) : (
+            <div className="mb-3 p-3 bg-gray-50 rounded">
+              <p className="text-sm text-gray-700">Using default app key</p>
             </div>
           )}
 
-          {/* Custom Filter Instructions */}
-          <section className="mb-8">
-            <h2 className="text-lg font-semibold mb-4">
-              Custom Filter Instructions
-            </h2>
-            <div className="flex items-center gap-3 mb-3">
-              <label className="text-sm font-medium">AI Filtering</label>
-              <span
-                className={`text-xs px-2 py-1 rounded ${
-                  user.ai_filter_enabled
-                    ? "bg-green-100 text-green-700"
-                    : "bg-gray-200 text-gray-700"
-                }`}
-              >
-                {user.ai_filter_enabled ? "Enabled" : "Disabled"}
-              </span>
+          <div className="flex gap-2">
+            <input
+              type="password"
+              value={
+                hasOpenRouterKey && openRouterKey.endsWith("…")
+                  ? ""
+                  : openRouterKey
+              }
+              onChange={(e) => setOpenRouterKey(e.target.value)}
+              placeholder={
+                hasOpenRouterKey
+                  ? "Enter new key to replace (optional)"
+                  : "sk-or-v1-..."
+              }
+              className="flex-1 px-3 py-2 border rounded-lg"
+            />
+            <button
+              onClick={saveOpenRouterKey}
+              disabled={saving}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+            {hasOpenRouterKey && (
               <button
                 onClick={async () => {
-                  const next = !user.ai_filter_enabled;
-                  const { error } = await supabase
-                    .from("users")
-                    .update({ ai_filter_enabled: next })
-                    .eq("id", user.id);
-                  if (!error) {
-                    setUser({ ...user, ai_filter_enabled: next });
-                    setMessage(`AI filtering ${next ? "enabled" : "disabled"}`);
-                    setTimeout(() => setMessage(null), 2000);
-                  }
+                  setOpenRouterKey("");
+                  await saveOpenRouterKey();
                 }}
-                className="ml-auto px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
-              >
-                Toggle
-              </button>
-            </div>
-            <p className="text-sm text-gray-600 mb-3">
-              Customize how the AI filters feedback before it reaches you
-            </p>
-
-            <textarea
-              value={customPrompt}
-              onChange={(e) => setCustomPrompt(e.target.value)}
-              className="w-full h-24 px-3 py-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter your custom filtering instructions..."
-            />
-
-            <button
-              onClick={saveCustomPrompt}
-              disabled={saving}
-              className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              {saving ? "Saving..." : "Save Filter Settings"}
-            </button>
-          </section>
-
-          {/* Feedback Link */}
-          <section className="mb-8">
-            <h2 className="text-lg font-semibold mb-4">Feedback Link</h2>
-            <div className="p-3 bg-gray-50 rounded-lg mb-3">
-              <p className="text-sm text-gray-600 mb-1">Current link:</p>
-              <code className="text-sm">{feedbackLink}</code>
-            </div>
-            <button
-              onClick={generateNewLink}
-              className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
-            >
-              Generate New Link
-            </button>
-            <p className="text-xs text-gray-500 mt-2">
-              This will disable your old link
-            </p>
-          </section>
-
-          {/* OpenRouter Key */}
-          <section className="mb-8">
-            <h2 className="text-lg font-semibold mb-4">OpenRouter API Key</h2>
-            {hasOpenRouterKey ? (
-              <div className="mb-3 p-3 bg-green-50 rounded">
-                <p className="text-sm text-green-800">
-                  Using personal key:{" "}
-                  <code className="bg-white px-1 py-0.5 rounded">
-                    {openRouterKey}
-                  </code>
-                </p>
-              </div>
-            ) : (
-              <div className="mb-3 p-3 bg-gray-50 rounded">
-                <p className="text-sm text-gray-700">Using default app key</p>
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <input
-                type="password"
-                value={
-                  hasOpenRouterKey && openRouterKey.endsWith("…")
-                    ? ""
-                    : openRouterKey
-                }
-                onChange={(e) => setOpenRouterKey(e.target.value)}
-                placeholder={
-                  hasOpenRouterKey
-                    ? "Enter new key to replace (optional)"
-                    : "sk-or-v1-..."
-                }
-                className="flex-1 px-3 py-2 border rounded-lg"
-              />
-              <button
-                onClick={saveOpenRouterKey}
-                disabled={saving}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-              >
-                {saving ? "Saving..." : "Save"}
-              </button>
-              {hasOpenRouterKey && (
-                <button
-                  onClick={async () => {
-                    setOpenRouterKey("");
-                    await saveOpenRouterKey();
-                  }}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              If left empty, the default app key is used
-            </p>
-          </section>
-
-          {/* Private Key Management */}
-          <section className="mb-8">
-            <h2 className="text-lg font-semibold mb-4">
-              Private Key Management
-            </h2>
-
-            {hasLocalKey ? (
-              <div className="p-3 bg-green-50 border border-green-200 rounded mb-3">
-                <p className="text-sm text-green-700 font-medium">
-                  ✓ Private key saved in browser
-                </p>
-                <p className="text-xs text-gray-600 mt-1">
-                  Your encrypted private key is stored locally in this browser
-                </p>
-                <button
-                  onClick={removeLocalKey}
-                  className="mt-3 text-sm text-red-600 hover:underline"
-                >
-                  Remove from browser
-                </button>
-              </div>
-            ) : (
-              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded mb-3">
-                <p className="text-sm text-yellow-700 font-medium">
-                  ⚠️ Private key not saved in browser
-                </p>
-                <p className="text-xs text-gray-600 mt-1">
-                  You'll need to enter your full private key each time to read
-                  feedback
-                </p>
-              </div>
-            )}
-
-            {hasLocalKey && (
-              <button
-                onClick={() => setShowExportModal(true)}
-                className="px-4 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700"
-              >
-                Export Private Key
-              </button>
-            )}
-          </section>
-
-          {/* Account */}
-          <section>
-            <h2 className="text-lg font-semibold mb-4">Account</h2>
-            <div className="space-y-3">
-              <button
-                onClick={handleSignOut}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
               >
-                Sign Out
+                Remove
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            If left empty, the default app key is used
+          </p>
+        </div>
+
+        {/* Private Key Management */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4">Private Key Management</h2>
+
+          {hasLocalKey ? (
+            <div className="p-3 bg-green-50 border border-green-200 rounded mb-3">
+              <p className="text-sm text-green-700 font-medium">
+                ✓ Private key saved in browser
+              </p>
+              <p className="text-xs text-gray-600 mt-1">
+                Your encrypted private key is stored locally in this browser
+              </p>
+              <button
+                onClick={removeLocalKey}
+                className="mt-3 text-sm text-red-600 hover:underline"
+              >
+                Remove from browser
               </button>
             </div>
-          </section>
+          ) : (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded mb-3">
+              <p className="text-sm text-yellow-700 font-medium">
+                ⚠️ Private key not saved in browser
+              </p>
+              <p className="text-xs text-gray-600 mt-1">
+                You'll need to enter your full private key each time to read
+                feedback
+              </p>
+            </div>
+          )}
+
+          {hasLocalKey && (
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="px-4 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700"
+            >
+              Export Private Key
+            </button>
+          )}
+        </div>
+
+        {/* Account */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h2 className="text-lg font-semibold mb-4">Account</h2>
+          <div className="space-y-3">
+            <button
+              onClick={handleSignOut}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
       </div>
 
