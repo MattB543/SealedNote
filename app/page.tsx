@@ -2,74 +2,54 @@ import Link from "next/link";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { SignInForm } from "@/components/SignInCard";
 
 export default async function Home() {
   const supabase = createServerComponentClient({ cookies });
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // If user is already logged in, redirect to dashboard
-  if (session) {
-    redirect("/dashboard");
+  if (user) {
+    redirect("/auth/unlock");
   }
 
   return (
-    <main className="flex min-h-[calc(100dvh-130px)] flex-col items-center justify-center p-8">
-      <div className="max-w-2xl text-center">
-        <h1 className="text-5xl font-bold mb-4 text-gray-900">
-          Anonymous feedback, filtered and encrypted
-        </h1>
-
-        <div className="mt-8 space-y-4 text-lg text-gray-600">
-          <div className="flex items-start gap-3">
-            <span className="text-green-500 mt-1">✓</span>
-            <p className="text-left">
-              No Gmail required — sign in with any email via magic link
-            </p>
+    <main className="min-h-full px-6 py-12">
+      <div className="mx-auto max-w-2xl">
+        <div className="bg-white rounded-lg shadow-lg p-8">
+          <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl text-center">
+            Anonymous feedback with no downsides
+          </h1>
+          <div className="mt-6 space-y-2 text-sm text-gray-700">
+            <Feature text="Open source and end-to-end encrypted. We can't read your feedback" />
+            <Feature text="Bring your own AI with an OpenRouter API key" />
+            <Feature text="Prevent counterproductive hurtful feedback with AI filtering" />
+            <Feature text="Improve feedback quality and protect submitter anonymity with AI" />
           </div>
-          <div className="flex items-start gap-3">
-            <span className="text-green-500 mt-1">✓</span>
-            <p className="text-left">
-              Open source and end‑to‑end encrypted — even we can't read feedback
-            </p>
+          <div className="mt-6 text-center">
+            <Link
+              href="/how-it-works"
+              className="text-blue-600 hover:underline"
+            >
+              Learn more →
+            </Link>
           </div>
-          <div className="flex items-start gap-3">
-            <span className="text-green-500 mt-1">✓</span>
-            <p className="text-left">
-              Bring your own AI — use your OpenRouter API key
-            </p>
+          <div className="mt-8">
+            <SignInForm />
           </div>
-          <div className="flex items-start gap-3">
-            <span className="text-green-500 mt-1">✓</span>
-            <p className="text-left">
-              No anonymous write access to your brain — submissions are filtered
-            </p>
-          </div>
-          <div className="flex items-start gap-3">
-            <span className="text-green-500 mt-1">✓</span>
-            <p className="text-left">
-              AI improves feedback quality and helps protect submitter anonymity
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-12">
-          <Link
-            href="/auth/signin"
-            className="inline-flex items-center px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Continue
-          </Link>
-        </div>
-
-        <div className="mt-8">
-          <Link href="/how-it-works" className="text-blue-600 hover:underline">
-            Learn how it works →
-          </Link>
         </div>
       </div>
     </main>
+  );
+}
+
+function Feature({ text }: { text: string }) {
+  return (
+    <div className="flex items-start gap-2">
+      <span className="mt-1 text-blue-600">-</span>
+      <p className="flex-1 text-sm leading-snug">{text}</p>
+    </div>
   );
 }

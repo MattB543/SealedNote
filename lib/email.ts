@@ -1,3 +1,4 @@
+import "server-only";
 import { ServerClient } from "postmark";
 
 export async function sendFeedbackEmail(to: string, isMean: boolean) {

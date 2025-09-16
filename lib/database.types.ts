@@ -20,6 +20,9 @@ export interface Database {
           custom_prompt: string | null
           openrouter_api_key: string | null
           ai_filter_enabled: boolean
+          ai_reviewer_enabled: boolean
+          auto_delete_mean: boolean
+          feedback_note: string | null
           created_at: string
         }
         Insert: {
@@ -31,6 +34,9 @@ export interface Database {
           custom_prompt?: string | null
           openrouter_api_key?: string | null
           ai_filter_enabled?: boolean
+          ai_reviewer_enabled?: boolean
+          auto_delete_mean?: boolean
+          feedback_note?: string | null
           created_at?: string
         }
         Update: {
@@ -42,6 +48,9 @@ export interface Database {
           custom_prompt?: string | null
           openrouter_api_key?: string | null
           ai_filter_enabled?: boolean
+          ai_reviewer_enabled?: boolean
+          auto_delete_mean?: boolean
+          feedback_note?: string | null
           created_at?: string
         }
       }

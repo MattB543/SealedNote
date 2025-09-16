@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSupabase } from "@/components/SupabaseProvider";
 import { browserCrypto } from "@/lib/crypto-browser";
+import { DEFAULT_FEEDBACK_NOTE } from "@/lib/constants";
 import Link from "next/link";
 
 const PROMPT_EXAMPLES = {
   strict: "Filter anything negative, harsh, or critical",
   balanced:
-    "Filter only serious insults, threats, and purely hurtful comments with zero constructive value",
+    "Filter out only serious insults, threats, and purely hurtful comments with zero constructive value",
   lenient: "Only filter extreme hate speech and threats",
 };
 
@@ -18,6 +19,9 @@ export default function Settings() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [customPrompt, setCustomPrompt] = useState("");
+  const [feedbackNote, setFeedbackNote] = useState<string>(
+    DEFAULT_FEEDBACK_NOTE
+  );
   const [feedbackLink, setFeedbackLink] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -55,6 +59,7 @@ export default function Settings() {
 
       setUser(userData);
       setCustomPrompt(userData.custom_prompt || PROMPT_EXAMPLES.balanced);
+      setFeedbackNote(userData.feedback_note || DEFAULT_FEEDBACK_NOTE);
       if (userData.openrouter_api_key) {
         setHasOpenRouterKey(true);
         setOpenRouterKey("••••••••••••…"); // purely a display mask
@@ -105,6 +110,26 @@ export default function Settings() {
       setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
       setMessage("Failed to update settings");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveFeedbackNote = async () => {
+    try {
+      setSaving(true);
+      setMessage(null);
+      const res = await fetch("/api/settings/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feedback_note: feedbackNote }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      setMessage("Feedback note updated!");
+      setTimeout(() => setMessage(null), 3000);
+    } catch (error: any) {
+      setMessage("Failed to update feedback note");
     } finally {
       setSaving(false);
     }
@@ -222,14 +247,14 @@ export default function Settings() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-full flex items-center justify-center">
         <div className="text-gray-500">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-4 pb-20">
+    <div className="min-h-full p-4">
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Settings</h1>
@@ -243,6 +268,34 @@ export default function Settings() {
             {message}
           </div>
         )}
+
+        {/* Feedback Note for Senders */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4">Feedback Note</h2>
+          <p className="text-sm text-gray-600 mb-2">
+            Shown on your share page above the text box.
+          </p>
+          <input
+            type="text"
+            value={feedbackNote}
+            onChange={(e) => setFeedbackNote(e.target.value)}
+            placeholder={DEFAULT_FEEDBACK_NOTE}
+            maxLength={200}
+            className="w-full px-3 py-2 border rounded-lg"
+          />
+          <div className="flex items-center justify-between mt-2">
+            <span className="text-xs text-gray-500">
+              {feedbackNote.length}/200
+            </span>
+            <button
+              onClick={saveFeedbackNote}
+              disabled={saving}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </div>
 
         {/* Custom Filter Instructions */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -263,14 +316,29 @@ export default function Settings() {
             <button
               onClick={async () => {
                 const next = !user.ai_filter_enabled;
-                const { error } = await supabase
-                  .from("users")
-                  .update({ ai_filter_enabled: next })
-                  .eq("id", user.id);
-                if (!error) {
-                  setUser({ ...user, ai_filter_enabled: next });
+                try {
+                  setSaving(true);
+                  const payload: any = { ai_filter_enabled: next };
+                  if (!next) {
+                    payload.auto_delete_mean = false;
+                  }
+                  const res = await fetch("/api/settings/update", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error || "Failed");
+                  setUser({
+                    ...user,
+                    ai_filter_enabled: next,
+                    ...(next ? {} : { auto_delete_mean: false }),
+                  });
                   setMessage(`AI filtering ${next ? "enabled" : "disabled"}`);
                   setTimeout(() => setMessage(null), 2000);
+                } catch {
+                } finally {
+                  setSaving(false);
                 }
               }}
               className="ml-auto px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
@@ -282,12 +350,14 @@ export default function Settings() {
             Customize how the AI filters feedback before it reaches you
           </p>
 
-          <textarea
-            value={customPrompt}
-            onChange={(e) => setCustomPrompt(e.target.value)}
-            className="w-full h-24 px-3 py-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Enter your custom filtering instructions..."
-          />
+          {user.ai_filter_enabled && (
+            <textarea
+              value={customPrompt}
+              onChange={(e) => setCustomPrompt(e.target.value)}
+              className="w-full h-24 px-3 py-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter your custom filtering instructions..."
+            />
+          )}
 
           <button
             onClick={saveCustomPrompt}
@@ -296,6 +366,115 @@ export default function Settings() {
           >
             {saving ? "Saving..." : "Save Filter Settings"}
           </button>
+        </div>
+
+        {/* AI Reviewer Toggle */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4">AI Reviewer (Coach)</h2>
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-sm font-medium">Status</span>
+            <span
+              className={`text-xs px-2 py-1 rounded ${
+                user.ai_reviewer_enabled
+                  ? "bg-green-100 text-green-700"
+                  : "bg-gray-200 text-gray-700"
+              }`}
+            >
+              {user.ai_reviewer_enabled ? "Enabled" : "Disabled"}
+            </span>
+            <button
+              onClick={async () => {
+                const next = !user.ai_reviewer_enabled;
+                try {
+                  setSaving(true);
+                  const res = await fetch("/api/settings/update", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ai_reviewer_enabled: next }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error || "Failed");
+                  setUser({ ...user, ai_reviewer_enabled: next });
+                  setMessage(`AI reviewer ${next ? "enabled" : "disabled"}`);
+                  setTimeout(() => setMessage(null), 2000);
+                } catch {
+                } finally {
+                  setSaving(false);
+                }
+              }}
+              className="ml-auto px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
+            >
+              {user.ai_reviewer_enabled ? "Disable" : "Enable"}
+            </button>
+          </div>
+          <p className="text-sm text-gray-600">
+            When enabled, senders may see coaching suggestions before sending.
+          </p>
+        </div>
+
+        {/* Auto-delete toggle */}
+        <div
+          className={`bg-white rounded-lg shadow-sm p-6 mb-6 ${
+            !user.ai_filter_enabled ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+        >
+          <h2 className="text-lg font-semibold mb-4">
+            Auto‑delete filtered feedback
+          </h2>
+          <div className="flex items-center gap-3 mb-3">
+            <span
+              className={`text-sm font-medium `}
+              title={
+                !user.ai_filter_enabled
+                  ? "Enable AI filtering to enable auto-delete feature"
+                  : undefined
+              }
+            >
+              Status
+            </span>
+            <span
+              className={`text-xs px-2 py-1 rounded ${
+                user.auto_delete_mean
+                  ? "bg-green-100 text-green-700"
+                  : "bg-gray-200 text-gray-700"
+              }`}
+            >
+              {user.auto_delete_mean ? "Enabled" : "Disabled"}
+            </span>
+            <button
+              onClick={async () => {
+                const next = !user.auto_delete_mean;
+                try {
+                  setSaving(true);
+                  const res = await fetch("/api/settings/update", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ auto_delete_mean: next }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error || "Failed");
+                  setUser({ ...user, auto_delete_mean: next });
+                  setMessage(`Auto-delete ${next ? "enabled" : "disabled"}`);
+                  setTimeout(() => setMessage(null), 2000);
+                } catch {
+                } finally {
+                  setSaving(false);
+                }
+              }}
+              disabled={!user.ai_filter_enabled || saving}
+              className="ml-auto px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={
+                !user.ai_filter_enabled
+                  ? "Enable AI filtering to enable auto-delete feature"
+                  : undefined
+              }
+            >
+              {user.auto_delete_mean ? "Disable" : "Enable"}
+            </button>
+          </div>
+          <p className="text-sm text-gray-600">
+            If enabled, messages flagged as mean are dropped silently.
+          </p>
         </div>
 
         {/* Feedback Link */}

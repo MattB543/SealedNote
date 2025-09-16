@@ -9,7 +9,7 @@ import Header from "@/components/Header";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "FilteredFeedback - Anonymous feedback, filtered and encrypted",
+  title: "SealedNote - Anonymous feedback, filtered and encrypted",
   description:
     "Receive anonymous feedback that is filtered for meanness and encrypted for your privacy",
 };
@@ -29,12 +29,13 @@ export default async function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <SupabaseProvider session={session}>
-          <div className="min-h-[calc(100vh-64px)] bg-gray-50 pb-20">
+          {/* App shell: header + main + footer without fixed positioning */}
+          <div className="min-h-screen bg-gray-50 flex flex-col">
             <Header />
-            {children}
-            <footer className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200">
-              <div className="container mx-auto text-center text-sm text-gray-600">
-                🔒 End-to-end encryption with your public key
+            <main className="flex-1 min-h-0">{children}</main>
+            <footer className="mt-auto border-t border-gray-200 bg-white">
+              <div className="max-w-4xl mx-auto px-4 py-3 text-center text-sm text-gray-600">
+                🔒 Open-source & encrypted
               </div>
             </footer>
           </div>

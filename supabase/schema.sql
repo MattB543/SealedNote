@@ -11,6 +11,9 @@ CREATE TABLE IF NOT EXISTS public.users (
   custom_prompt TEXT,
   openrouter_api_key TEXT,
   ai_filter_enabled BOOLEAN NOT NULL DEFAULT true,
+  ai_reviewer_enabled BOOLEAN NOT NULL DEFAULT true,
+  auto_delete_mean BOOLEAN NOT NULL DEFAULT false,
+  feedback_note TEXT DEFAULT 'Please share your honest thoughts, constructive feedback, or compliments',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   CONSTRAINT username_lowercase CHECK (username = lower(username)),
   CONSTRAINT username_allowed_chars CHECK (username ~ '^[a-z0-9-]+$')
@@ -79,6 +82,21 @@ CREATE INDEX idx_feedback_created_at ON public.feedback(created_at);
 -- Ensure only one active link per user
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_active_feedback_link_per_user ON public.feedback_links(user_id) WHERE is_active;
 CREATE INDEX idx_users_username ON public.users(username);
+
+-- --------
+-- MIGRATION for existing deployments (safe if rerun)
+-- --------
+ALTER TABLE public.users
+  ADD COLUMN IF NOT EXISTS ai_reviewer_enabled BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE public.users
+  ADD COLUMN IF NOT EXISTS auto_delete_mean BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE public.users
+  ADD COLUMN IF NOT EXISTS feedback_note TEXT;
+
+UPDATE public.users
+SET feedback_note = 'Please share your honest thoughts, constructive feedback, or compliments'
+WHERE feedback_note IS NULL;
 
 -- Scheduled (delayed) delivery storage (encrypted-at-rest fields only)
 CREATE TABLE IF NOT EXISTS public.scheduled_feedback (

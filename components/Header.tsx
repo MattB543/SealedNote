@@ -20,7 +20,7 @@ function GitHubIcon({ className = "w-4 h-4" }: { className?: string }) {
 
 export default function Header() {
   const owner = process.env.VERCEL_GIT_REPO_OWNER || "MattB543";
-  const slug = process.env.VERCEL_GIT_REPO_SLUG || "FilteredFeedback";
+  const slug = process.env.VERCEL_GIT_REPO_SLUG || "SealedNote";
   const repoFull = `${owner}/${slug}`;
   const repoUrl = `https://github.com/${repoFull}`;
 
@@ -32,8 +32,9 @@ export default function Header() {
       : undefined;
 
   return (
-    <header className="bg-white border-b border-gray-200 mb-[50px]">
-      <div className="container mx-auto flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+    <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+      <div className="max-w-4xl mx-auto px-4 h-14 flex flex-wrap items-center justify-between gap-2">
+        Logo Placeholder
         <div className="flex items-center gap-2 text-sm text-gray-700">
           <a
             href={repoUrl}
@@ -44,37 +45,37 @@ export default function Header() {
           >
             <GitHubIcon className="h-4 w-4" />
             <span className="font-medium">Open Source</span>
-            <span className="hidden sm:inline text-gray-500">{repoFull}</span>
           </a>
-        </div>
-
-        <nav className="flex items-center gap-4 text-sm">
-          <div className="text-gray-600">
-            <span className="text-gray-500">Live Commit:</span>{" "}
-            {commitUrl ? (
-              <a
-                href={commitUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-mono text-gray-800 underline decoration-dotted underline-offset-4 hover:text-black"
-                title={commitSha}
-              >
-                {shortSha}
-              </a>
-            ) : (
-              <span className="font-mono text-gray-800" title={commitSha}>
-                {shortSha}
-              </span>
-            )}
-          </div>
 
           <Link
             href="/vercel-proof"
             className="inline-flex items-center rounded-full border border-gray-300 bg-white px-3 py-1 font-medium text-gray-800 hover:bg-gray-50"
           >
-            Check Build Proof
+            ▲ Build Proof
           </Link>
-        </nav>
+          {commitUrl ? (
+            <a
+              href={commitUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-full border border-gray-300 bg-white px-3 py-1 text-gray-800"
+              aria-label={`Live commit ${shortSha}`}
+              title={commitSha}
+            >
+              <span className="font-medium">Live Commit:</span>{" "}
+              <span className="font-mono underline decoration-dotted underline-offset-4">
+                {shortSha}
+              </span>
+            </a>
+          ) : (
+            <span className="rounded-full border border-gray-300 bg-white px-3 py-1 text-gray-800">
+              <span className="font-medium">Live Commit:</span>{" "}
+              <span className="font-mono" title={commitSha}>
+                {shortSha}
+              </span>
+            </span>
+          )}
+        </div>
       </div>
     </header>
   );

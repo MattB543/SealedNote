@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function HowItWorks() {
   return (
-    <div className="min-h-screen p-4 pb-20">
+    <div className="min-h-full p-4">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <Link href="/" className="text-blue-600 hover:underline">
@@ -11,15 +11,13 @@ export default function HowItWorks() {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm p-8">
-          <h1 className="text-3xl font-bold mb-8">
-            How FilteredFeedback Works
-          </h1>
+          <h1 className="text-3xl font-bold mb-8">How SealedNote Works</h1>
 
           {/* Overview */}
           <section className="mb-10">
             <h2 className="text-2xl font-semibold mb-4">Overview</h2>
             <p className="text-gray-700 leading-relaxed">
-              FilteredFeedback is an anonymous feedback platform that protects
+              SealedNote is an anonymous feedback platform that protects
               recipients from hurtful comments while maintaining complete
               privacy through end-to-end encryption. Here's how we achieve both
               goals simultaneously.

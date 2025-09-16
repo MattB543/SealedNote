@@ -9,7 +9,7 @@ type Bucket = { count: number; resetAt: number };
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 10;
 const buckets = new Map<string, Bucket>();
-const MAX_BUCKETS = 50_000;
+const MAX_BUCKETS = 5_000;
 
 function pruneBuckets() {
   const now = Date.now();
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     const { data: recipient, error: recipError } = await (supabase as any)
       .from("users")
-      .select("custom_prompt, ai_filter_enabled, openrouter_api_key")
+      .select("custom_prompt, ai_reviewer_enabled, openrouter_api_key")
       .eq("id", link.user_id)
       .single();
     if (recipError || !recipient) {
@@ -98,20 +98,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Respect preference: if AI disabled, return heuristic hints only
-    if (!recipient.ai_filter_enabled) {
-      const hints = heuristicCoach(content);
-      return NextResponse.json({
-        used_llm: false,
-        needs_improvement: hints.needs_improvement,
-        missing: hints.missing,
-        anonymity: hints.anonymity,
-        suggestions: hints.suggestions,
-        questions_to_help: hints.questions_to_help,
-        quality_rewrite: null,
-        anon_rewrite: hints.anon_rewrite,
-        note: "AI filtering disabled; heuristic-only suggestions.",
-      });
+    // Respect preference: if Reviewer disabled, do not coach
+    if (!recipient.ai_reviewer_enabled) {
+      return NextResponse.json({ used_llm: false, disabled: true });
     }
 
     // Select key: user's decrypted key or app default
@@ -124,18 +113,8 @@ export async function POST(request: NextRequest) {
     if (!openRouterKey) openRouterKey = process.env.OPENROUTER_API_KEY;
 
     if (!openRouterKey) {
-      const hints = heuristicCoach(content);
-      return NextResponse.json({
-        used_llm: false,
-        needs_improvement: hints.needs_improvement,
-        missing: hints.missing,
-        anonymity: hints.anonymity,
-        suggestions: hints.suggestions,
-        questions_to_help: hints.questions_to_help,
-        quality_rewrite: null,
-        anon_rewrite: hints.anon_rewrite,
-        note: "LLM not configured; heuristic-only suggestions.",
-      });
+      // LLM not configured; disable coaching (no heuristics)
+      return NextResponse.json({ used_llm: false, disabled: true });
     }
 
     const result = await coachWithOpenRouter(
@@ -145,75 +124,11 @@ export async function POST(request: NextRequest) {
     );
     return NextResponse.json({ used_llm: true, ...result });
   } catch (error) {
-    return NextResponse.json({ error: "Failed to analyze" }, { status: 500 });
+    // Disable coaching on failure (no heuristics)
+    return NextResponse.json({ used_llm: false, disabled: true });
   }
 }
 
-function heuristicCoach(text: string) {
-  const missingBase = {
-    constructive:
-      !/(because|so that|impact|effect|help|improve|so you can)/i.test(text),
-    actionable: !/(try|consider|could you|please|next time|suggest)/i.test(text),
-    example_missing: !/(for example|e\.g\.|such as|like when)/i.test(text),
-  };
-  const missing = {
-    ...missingBase,
-    example_present: !missingBase.example_missing,
-  } as any;
-  const deanonymizers = [
-    /\b(yesterday|last night|this morning|at \d{1,2}(:\d{2})?\s?(am|pm)?)\b/i,
-    /\b\d{1,2}(am|pm)\b/i,
-    /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i,
-    /\b(at|outside|near)\s+(the\s+)?(bathroom|party|kitchen|elevator|boardroom|standup)\b/i,
-    /\b(slack|email|dm|zoom)\b/i,
-    /@[a-z0-9_.-]+/i,
-    /\b\d{1,2}\/\d{1,2}(\/\d{2,4})?\b/,
-    /\b(sept|sep|jan|feb|mar|apr|jun|jul|aug|oct|nov|dec)[a-z]*\s+\d{1,2}\b/i,
-    /\bday before yesterday\b/i,
-  ];
-  const hits = deanonymizers.filter((re) => re.test(text)).length;
-  const anonymity = {
-    risk_level: hits >= 2 ? "high" : hits === 1 ? "medium" : "low",
-    reason:
-      hits > 0
-        ? "Detected potentially identifying specifics (time/venue/names/platforms)."
-        : "No obvious identifying details detected.",
-    redact_suggestions: [
-      "Remove exact days/times (e.g., 'Tuesday 3:38 PM')",
-      "Remove locations (e.g., 'outside the bathroom')",
-      "Avoid platform specifics ('in Slack DM')",
-      "Describe patterns instead of single incidents",
-    ],
-  } as const;
-  const needs_improvement =
-    missing.constructive || missing.actionable || missing.example_missing;
-  const suggestions = [
-    missing.constructive &&
-      "Briefly state impact: how did this help/hurt outcomes?",
-    missing.actionable &&
-      "Offer one concrete next step starting with 'Consider…' or 'Next time…'.",
-    missing.example_missing &&
-      "Add one neutral example ('For example, during…').",
-  ].filter(Boolean) as string[];
-  const questions_to_help = [
-    "What outcome do you want to see change?",
-    "What is one specific behavior to continue/adjust?",
-    "Can you add one neutral example without dates/locations?",
-  ];
-  const anon_rewrite =
-    anonymity.risk_level !== "low"
-      ? "I'd like to share that a recent comment felt discouraging. Rather than single out a moment, the pattern I’ve noticed is quick remarks that land as dismissive. It would help if feedback came with a brief reason and one suggestion for what to adjust."
-      : null;
-
-  return {
-    needs_improvement,
-    missing,
-    anonymity,
-    suggestions,
-    questions_to_help,
-    anon_rewrite,
-  };
-}
 
 async function coachWithOpenRouter(
   content: string,
@@ -222,21 +137,25 @@ async function coachWithOpenRouter(
 ) {
   const prompt = buildCoachPrompt(content, customPrompt);
   try {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-        "X-Title": "FilteredFeedback",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-5-mini",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 1200,
-        response_format: { type: "json_object" },
-      }),
-    });
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer":
+            process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+          "X-Title": "FilteredFeedback",
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-5-mini",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 1200,
+          response_format: { type: "json_object" },
+        }),
+      }
+    );
     if (!response.ok) throw new Error("OpenRouter API request failed");
 
     const data = await response.json();
@@ -256,8 +175,10 @@ async function coachWithOpenRouter(
     const normalizedMissing = {
       constructive: !!parsedMissing.constructive,
       actionable: !!parsedMissing.actionable,
-      example_present: parsedMissing.example_present ?? !parsedMissing.example_missing,
-      example_missing: parsedMissing.example_missing ?? !parsedMissing.example_present,
+      example_present:
+        parsedMissing.example_present ?? !parsedMissing.example_missing,
+      example_missing:
+        parsedMissing.example_missing ?? !parsedMissing.example_present,
     };
     return {
       needs_improvement: !!parsed.needs_improvement,
@@ -272,29 +193,24 @@ async function coachWithOpenRouter(
       quality_rewrite: parsed.quality_rewrite ?? null,
       anon_rewrite: parsed.anon_rewrite ?? null,
     };
-  } catch {
-    const h = heuristicCoach(content);
-    return {
-      needs_improvement: h.needs_improvement,
-      missing: h.missing,
-      anonymity: h.anonymity,
-      suggestions: h.suggestions,
-      questions_to_help: h.questions_to_help,
-      quality_rewrite: null,
-      anon_rewrite: h.anon_rewrite,
-    };
+  } catch (e) {
+    throw e;
   }
 }
 
 function buildCoachPrompt(content: string, customPrompt: string) {
   return `
-Act as a helpful coach. Analyze the FEEDBACK for: (1) constructiveness, (2) actionability, (3) presence of at least one example, and (4) sender anonymity risk (specifics that could reveal identity).
-Recipient's filtering preference: "${
+You are an anonymous feedback reviewing assistant. Your job is to:
+1) Identify any risk that the text could reveal the author's identity (names, dates/times, locations, platforms, unique events).
+2) Improve the feedback for constructiveness and clarity (impact, one actionable suggestion, and one concise example if appropriate).
+3) Provide succinct guidance, then supply rewrites the sender can paste.
+
+Recipient preference (tone/policy): "${
     customPrompt ||
-    "Filter only serious insults, threats, and purely hurtful comments with zero constructive value"
+    "Filter out only serious insults, threats, and purely hurtful comments with zero constructive value"
   }".
 
-Return STRICT JSON with these keys:
+Output STRICT JSON (no prose) with exactly these keys:
 {
   "needs_improvement": boolean,
   "missing": { "constructive": boolean, "actionable": boolean, "example_present": boolean },
@@ -304,6 +220,14 @@ Return STRICT JSON with these keys:
   "quality_rewrite": string | null,
   "anon_rewrite": string | null
 }
+
+Guidance:
+- Keep explanations concise (1–2 short sentences each).
+- Rewrites must be neutral, respectful, and avoid identifying details (no names, dates/times, places, platforms).
+- If anonymity risk is not low, provide an anonymized rewrite in "anon_rewrite"; otherwise null.
+- If quality can be improved, provide a stronger, constructive version in "quality_rewrite"; otherwise null.
+- "suggestions" should be short, actionable bullets (phrases, not paragraphs).
+- Provide 3 short "questions_to_help" for further refinement.
 
 FEEDBACK:
 """${content}"""`;

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSupabase } from "@/components/SupabaseProvider";
 import { browserCrypto, generateSalt } from "@/lib/crypto-browser";
+import { DEFAULT_FEEDBACK_NOTE } from "@/lib/constants";
 
 export default function Setup() {
   const { supabase, session } = useSupabase();
@@ -13,17 +14,35 @@ export default function Setup() {
   const [username, setUsername] = useState("");
   const [openRouterKey, setOpenRouterKey] = useState("");
   const [aiEnabled, setAiEnabled] = useState(true);
+  const [aiReviewerEnabled, setAiReviewerEnabled] = useState(true);
+  const [autoDeleteMean, setAutoDeleteMean] = useState(true);
+  const [customPrompt, setCustomPrompt] = useState(
+    "Filter out only serious insults, threats, and purely hurtful comments with zero constructive value"
+  );
+  const [feedbackNote, setFeedbackNote] = useState<string>(
+    DEFAULT_FEEDBACK_NOTE
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Private key modal states
   const [showPrivateKeyModal, setShowPrivateKeyModal] = useState(false);
   const [privateKeyToDisplay, setPrivateKeyToDisplay] = useState("");
-  const [encryptedPrivateKey, setEncryptedPrivateKey] = useState("");
   const [userSalt, setUserSalt] = useState("");
   const [saveToLocalStorage, setSaveToLocalStorage] = useState(true);
   const [confirmedSaved, setConfirmedSaved] = useState(false);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
+
+  // Prefill username from email
+  useEffect(() => {
+    const email = session?.user?.email || "";
+    if (email && !username) {
+      const base = email.split("@")[0] || "";
+      const sanitized = base.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+      setUsername(sanitized);
+    }
+  }, [session, username]);
 
   const handleSetup = async () => {
     try {
@@ -60,6 +79,11 @@ export default function Setup() {
         public_key: publicKey,
         salt,
         ai_filter_enabled: aiEnabled,
+        ai_reviewer_enabled: aiReviewerEnabled,
+        auto_delete_mean: autoDeleteMean,
+        custom_prompt: customPrompt ? customPrompt.trim() : null,
+        feedback_note:
+          (feedbackNote && feedbackNote.trim()) || DEFAULT_FEEDBACK_NOTE,
       });
 
       if (dbError) {
@@ -71,11 +95,11 @@ export default function Setup() {
 
       // If personal OpenRouter key provided, store via server to encrypt at rest
       if (openRouterKey && openRouterKey.trim().length > 0) {
-        await fetch('/api/settings/update', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        await fetch("/api/settings/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ openrouter_api_key: openRouterKey.trim() }),
-        })
+        });
       }
 
       // Generate initial feedback link: use username by default
@@ -120,8 +144,8 @@ export default function Setup() {
       localStorage.setItem("ff_salt", userSalt);
     }
 
-    // Redirect to dashboard
-    router.push("/dashboard");
+    // Redirect to unlock to immediately decrypt inbox
+    router.push("/auth/unlock");
   };
 
   const copyToClipboard = async () => {
@@ -131,75 +155,191 @@ export default function Setup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="max-w-lg w-full bg-white rounded-lg shadow-lg p-8">
-        <h2 className="text-2xl font-bold mb-2">
-          Welcome! Set up your account
-        </h2>
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
-        )}
-
-        <div className="flex items-center gap-3 mb-4">
-          <label className="text-sm font-medium">AI Filtering</label>
-          <span
-            className={`text-xs px-2 py-1 rounded ${aiEnabled ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}
-          >
-            {aiEnabled ? 'Enabled' : 'Disabled'}
-          </span>
-          <button
-            type="button"
-            onClick={() => setAiEnabled((v) => !v)}
-            className="ml-auto px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
-          >
-            Toggle
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Choose a username
-            </label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value.toLowerCase())}
-              placeholder="john-doe"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Your feedback link will be: {process.env.NEXT_PUBLIC_APP_URL}/f/
-              {username || "your-username"}
+    <div className="min-h-full">
+      {/* Step Wizard Modal */}
+      {!showPrivateKeyModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-1">
+              Welcome! Set up your account
+            </h2>
+            <p className="text-sm text-gray-500 mb-6">
+              Step {String(step)} of 2
             </p>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Optional: Your OpenRouter API key
-            </label>
-            <input
-              type="password"
-              value={openRouterKey}
-              onChange={(e) => setOpenRouterKey(e.target.value)}
-              placeholder="sk-or-v1-..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Leave empty to use the app's default key
-            </p>
-          </div>
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+                {error}
+              </div>
+            )}
 
-          <button
-            onClick={handleSetup}
-            disabled={loading}
-            className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-          >
-            {loading ? "Setting up..." : "Create Private Key"}
-          </button>
+            {step === 1 && (
+              <div className="space-y-8">
+                <div>
+                  <label className="block text-sm font-medium">
+                    Choose a username
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Your feedback link will be:{" "}
+                    {process.env.NEXT_PUBLIC_APP_URL}/f/
+                    {username || "your-username"}
+                  </p>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                    placeholder="john-doe"
+                    className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium">
+                    Feedback note for senders
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Shown on your public feedback page
+                  </p>
+                  <textarea
+                    value={feedbackNote}
+                    onChange={(e) => setFeedbackNote(e.target.value)}
+                    placeholder={DEFAULT_FEEDBACK_NOTE}
+                    maxLength={200}
+                    rows={2}
+                    className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => {
+                      // validate username before proceeding
+                      if (!username) {
+                        setError("Please choose a username");
+                        return;
+                      }
+                      if (!/^[a-z0-9-]+$/.test(username)) {
+                        setError(
+                          "Username can only contain lowercase letters, numbers, and hyphens"
+                        );
+                        return;
+                      }
+                      setError(null);
+                      setStep(2);
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {step === 2 && (
+              <div className="space-y-5">
+                <div>
+                  <div className="flex items-center gap-3 ">
+                    <label className="text-sm font-medium flex-1">
+                      AI Filtering
+                    </label>
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4"
+                      checked={aiEnabled}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setAiEnabled(checked);
+                        if (!checked) setAutoDeleteMean(false);
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Have an AI read each feedback and apply filters
+                  </p>
+                  {aiEnabled && (
+                    <div>
+                      <textarea
+                        value={customPrompt}
+                        onChange={(e) => setCustomPrompt(e.target.value)}
+                        className="w-full text-sm h-18 px-3 py-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g., Filter out only serious insults, threats, and purely hurtful comments with zero constructive value"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm font-medium flex-1">
+                      Auto-delete filtered feedback
+                    </label>
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4"
+                      checked={autoDeleteMean}
+                      onChange={(e) => setAutoDeleteMean(e.target.checked)}
+                      disabled={!aiEnabled}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Drops filtered messages instead of saving them
+                  </p>
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm font-medium flex-1">
+                      AI Coach for Senders
+                    </label>
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4"
+                      checked={aiReviewerEnabled}
+                      onChange={(e) => setAiReviewerEnabled(e.target.checked)}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Gives senders coaching to improve feedback quality
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium ">
+                    Your OpenRouter API key{" "}
+                    <span className="text-xs text-gray-500">Optional</span>
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Used for AI calls. Leave empty to use the app's default key
+                  </p>
+                  <input
+                    type="password"
+                    value={openRouterKey}
+                    onChange={(e) => setOpenRouterKey(e.target.value)}
+                    placeholder="sk-or-v1-..."
+                    className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="flex justify-between">
+                  <button
+                    onClick={() => setStep(1)}
+                    className="px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handleSetup}
+                    disabled={loading}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {loading ? "Setting up..." : "Create Encryption Key"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Private Key Modal */}
       {showPrivateKeyModal && (
@@ -227,7 +367,7 @@ export default function Setup() {
               <textarea
                 readOnly
                 value={privateKeyToDisplay}
-                className="w-full h-32 mt-1 p-2 text-xs font-mono bg-white border rounded"
+                className="w-full h-24 mt-1 p-2 text-[11px] font-mono bg-white border rounded"
                 onClick={(e) => e.currentTarget.select()}
               />
               <button
@@ -247,11 +387,12 @@ export default function Setup() {
                   className="mt-1"
                 />
                 <div className="w-full">
-                  <p className="text-sm font-medium">Save in this browser</p>
+                  <p className="text-sm font-medium">
+                    Save key in this browser
+                  </p>
                   <p className="text-xs text-gray-600">
-                    Your private key will be encrypted and saved in this
-                    browser. You can then unlock it with a password instead of
-                    pasting the full key each time.
+                    Encrypt and save your key locally in this browser so you can
+                    use a password instead of pasting the full key every time
                   </p>
                   {saveToLocalStorage && (
                     <input
@@ -285,7 +426,7 @@ export default function Setup() {
               disabled={!confirmedSaved}
               className="w-full py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              Continue to Dashboard
+              Unlock Inbox
             </button>
           </div>
         </div>

@@ -29,37 +29,6 @@ export const browserCrypto = {
     const privateKeyPem = await this.exportPrivateKey(keyPair.privateKey);
     return { publicKey, privateKey: privateKeyPem };
   },
-  // Generate RSA key pair (random), then encrypt private key with password for storage
-  async generateKeyPair(
-    password: string,
-    salt: string
-  ): Promise<{ publicKey: string; privateKey: string }> {
-    // Generate RSA key pair
-    const keyPair = await crypto.subtle.generateKey(
-      {
-        name: "RSA-OAEP",
-        modulusLength: 2048,
-        publicExponent: new Uint8Array([1, 0, 1]),
-        hash: "SHA-256",
-      },
-      true,
-      ["encrypt", "decrypt"]
-    );
-
-    // Export keys to PEM
-    const publicKey = await this.exportPublicKey(keyPair.publicKey);
-    const privateKeyPem = await this.exportPrivateKey(keyPair.privateKey);
-
-    // Encrypt private key with password for storage
-    const encryptedPrivateKey = await this.encryptPrivateKeyWithPassword(
-      privateKeyPem,
-      password,
-      salt
-    );
-
-    return { publicKey, privateKey: encryptedPrivateKey };
-  },
-
   async encryptPrivateKeyWithPassword(
     privateKey: string,
     password: string,
@@ -304,18 +273,11 @@ export const browserCrypto = {
     return btoa(this.uint8ToString(combined));
   },
 
-  str2ab(str: string): ArrayBuffer {
-    const buf = new ArrayBuffer(str.length);
-    const bufView = new Uint8Array(buf);
-    for (let i = 0, strLen = str.length; i < strLen; i++) {
-      bufView[i] = str.charCodeAt(i);
-    }
-    return buf;
-  },
-
   uint8ToString(u8: Uint8Array): string {
     let s = "";
     for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]);
     return s;
   },
 };
+
+

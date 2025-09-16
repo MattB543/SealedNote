@@ -11,7 +11,7 @@ type Bucket = { count: number; resetAt: number };
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
 const RATE_LIMIT_MAX = 10; // per IP+token per minute
 const buckets = new Map<string, Bucket>();
-const MAX_BUCKETS = 50_000;
+const MAX_BUCKETS = 5_000;
 
 function pruneBuckets() {
   const now = Date.now();
@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
       encrypted_content,
       encrypted_reasoning,
       deliverAt,
+      delayRange,
     } = await request.json();
 
     // Validate input
@@ -109,7 +110,7 @@ export async function POST(request: NextRequest) {
     const { data: recipient, error: recipientError } = await (supabase as any)
       .from("users")
       .select(
-        "id, email, public_key, custom_prompt, openrouter_api_key, ai_filter_enabled"
+        "id, email, public_key, custom_prompt, openrouter_api_key, ai_filter_enabled, ai_reviewer_enabled, auto_delete_mean"
       )
       .eq("id", link.user_id)
       .single();
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Enforce recipient preference: if AI disabled, require client-side encryption
+    // Enforce recipient preference: if AI filtering disabled, require client-side encryption
     if (!recipient.ai_filter_enabled) {
       if (!isEncrypted || !encrypted_content || !encrypted_reasoning) {
         return NextResponse.json(
@@ -179,14 +180,26 @@ export async function POST(request: NextRequest) {
         recipient.public_key
       );
       isMean = classification.is_mean;
+
+      // Auto-delete: if enabled and classified mean, drop silently
+      if (recipient.auto_delete_mean && isMean) {
+        return NextResponse.json({ success: true });
+      }
     }
 
     // If scheduling requested and valid, store in scheduled_feedback and skip email
     let scheduledAtIso: string | null = null;
-    if (deliverAt) {
+    const nowDt = new Date();
+    const max = new Date(nowDt.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+    // Prefer delayRange if provided; otherwise honor explicit deliverAt
+    if (delayRange) {
+      const pick = pickRandomTimeFromRange(String(delayRange), nowDt, max);
+      if (pick) {
+        scheduledAtIso = pick.toISOString();
+      }
+    } else if (deliverAt) {
       const when = new Date(deliverAt);
-      const nowDt = new Date();
-      const max = new Date(nowDt.getTime() + 14 * 24 * 60 * 60 * 1000);
       if (!Number.isNaN(when.getTime()) && when > nowDt && when <= max) {
         scheduledAtIso = when.toISOString();
       }
@@ -227,6 +240,46 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Compute a random time within a named delay range, clamped to now..max
+function pickRandomTimeFromRange(
+  range: string,
+  now: Date,
+  max: Date
+): Date | null {
+  const hour = 60 * 60 * 1000;
+  const day = 24 * hour;
+
+  let startOffset = 0;
+  let endOffset = 0;
+
+  switch (range) {
+    case "h6_24":
+      startOffset = 6 * hour;
+      endOffset = 24 * hour;
+      break;
+    case "h25_72":
+      startOffset = 25 * hour;
+      endOffset = 72 * hour;
+      break;
+    case "d3_5":
+      startOffset = 3 * day;
+      endOffset = 5 * day;
+      break;
+    case "d6_10":
+      startOffset = 6 * day;
+      endOffset = 10 * day;
+      break;
+    default:
+      return null;
+  }
+
+  const startMs = Math.max(now.getTime() + startOffset, now.getTime());
+  const endMs = Math.min(now.getTime() + endOffset, max.getTime());
+  if (startMs >= endMs) return null;
+  const ts = startMs + Math.random() * (endMs - startMs);
+  return new Date(ts);
 }
 
 // LLM Classification using OpenRouter
@@ -313,7 +366,7 @@ function buildClassificationPrompt(
   customPrompt: string | null
 ): string {
   const defaultInstructions =
-    "Filter only serious insults, threats, and purely hurtful comments with zero constructive value";
+    "Filter out only serious insults, threats, and purely hurtful comments with zero constructive value";
   const instructions = customPrompt || defaultInstructions;
 
   return `Carefully classify the below feedback as mean or not, based on the instructions provided.

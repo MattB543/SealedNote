@@ -28,11 +28,12 @@ export async function GET(request: Request) {
 
       if (!existingUser) {
         // New user - redirect to setup page
-        return NextResponse.redirect(`${requestUrl.origin}/auth/setup`)
+        const base = process.env.NEXT_PUBLIC_APP_URL || requestUrl.origin
+        return NextResponse.redirect(`${base}/auth/setup`)
       }
-      
-      // Existing user - redirect to dashboard
-      return NextResponse.redirect(`${requestUrl.origin}/dashboard`)
+      // Existing user - redirect to unlock screen
+      const base = process.env.NEXT_PUBLIC_APP_URL || requestUrl.origin
+      return NextResponse.redirect(`${base}/auth/unlock`)
     }
   }
 

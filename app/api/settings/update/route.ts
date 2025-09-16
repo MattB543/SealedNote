@@ -2,12 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { encryptAtRest } from "@/lib/keystore";
+import { DEFAULT_FEEDBACK_NOTE } from "@/lib/constants";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   try {
-    const { custom_prompt, openrouter_api_key } = await request.json();
+    const {
+      custom_prompt,
+      openrouter_api_key,
+      ai_filter_enabled,
+      ai_reviewer_enabled,
+      auto_delete_mean,
+      feedback_note,
+    } = await request.json();
 
     const supabase = createRouteHandlerClient({ cookies });
     const {
@@ -29,6 +37,16 @@ export async function POST(request: NextRequest) {
       }
       update.custom_prompt = trimmed;
     }
+    if (typeof feedback_note !== "undefined") {
+      const trimmed = String(feedback_note).trim();
+      if (trimmed.length > 200) {
+        return NextResponse.json(
+          { error: "Feedback note too long (max 200 chars)" },
+          { status: 400 }
+        );
+      }
+      update.feedback_note = trimmed || DEFAULT_FEEDBACK_NOTE;
+    }
     if (typeof openrouter_api_key !== "undefined") {
       const val = openrouter_api_key ? String(openrouter_api_key).trim() : null;
       if (val && val.length > 200) {
@@ -38,6 +56,36 @@ export async function POST(request: NextRequest) {
         );
       }
       update.openrouter_api_key = val ? encryptAtRest(val) : null;
+    }
+
+    if (typeof ai_filter_enabled !== "undefined") {
+      if (typeof ai_filter_enabled !== "boolean") {
+        return NextResponse.json(
+          { error: "ai_filter_enabled must be boolean" },
+          { status: 400 }
+        );
+      }
+      update.ai_filter_enabled = ai_filter_enabled;
+    }
+
+    if (typeof ai_reviewer_enabled !== "undefined") {
+      if (typeof ai_reviewer_enabled !== "boolean") {
+        return NextResponse.json(
+          { error: "ai_reviewer_enabled must be boolean" },
+          { status: 400 }
+        );
+      }
+      update.ai_reviewer_enabled = ai_reviewer_enabled;
+    }
+
+    if (typeof auto_delete_mean !== "undefined") {
+      if (typeof auto_delete_mean !== "boolean") {
+        return NextResponse.json(
+          { error: "auto_delete_mean must be boolean" },
+          { status: 400 }
+        );
+      }
+      update.auto_delete_mean = auto_delete_mean;
     }
 
     if (Object.keys(update).length === 0) {

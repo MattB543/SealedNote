@@ -1,4 +1,5 @@
 // Server-side cryptographic utilities (Node.js only)
+import "server-only";
 import crypto from 'crypto'
 
 // Server-side: Encrypt text using RSA public key (hybrid RSA-OAEP + AES-GCM)

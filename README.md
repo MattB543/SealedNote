@@ -1,4 +1,4 @@
-# FilteredFeedback - Anonymous Feedback Platform
+# SealedNote - Anonymous Feedback Platform
 
 An anonymous feedback platform that filters mean comments using AI and encrypts all feedback with end-to-end encryption.
 
@@ -6,6 +6,8 @@ An anonymous feedback platform that filters mean comments using AI and encrypts 
 
 - 🔒 **End-to-End Encryption**: Feedback is encrypted with your public key; your password only protects your private key if you save it locally
 - 🤖 **AI Filtering**: Automatically filters potentially hurtful comments into a separate folder
+- 🧭 **AI Reviewer (Coach)**: Optional pre‑send coaching that flags anonymity risks and suggests constructive edits
+- 🧹 **Auto‑Delete (Optional)**: If enabled, feedback that fails the “is this mean?” filter is dropped silently
 - 👤 **Complete Anonymity**: No tracking of feedback senders
 <!-- Removed: Provable Privacy endpoints -->
 - 📧 **Email Notifications**: Get notified when you receive new feedback
@@ -15,7 +17,7 @@ An anonymous feedback platform that filters mean comments using AI and encrypts 
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 22.x and npm
 - Supabase account (free tier works)
 - OpenRouter API key (optional, for AI filtering)
 - Postmark API key (optional, for email notifications)
@@ -23,8 +25,8 @@ An anonymous feedback platform that filters mean comments using AI and encrypts 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/FilteredFeedback.git
-cd FilteredFeedback
+git clone https://github.com/yourusername/SealedNote.git
+cd SealedNote
 npm install
 ```
 

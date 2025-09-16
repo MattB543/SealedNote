@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 export default function VercelProofPage() {
   const owner = process.env.VERCEL_GIT_REPO_OWNER || "MattB543";
-  const slug = process.env.VERCEL_GIT_REPO_SLUG || "FilteredFeedback";
+  const slug = process.env.VERCEL_GIT_REPO_SLUG || "SealedNote";
   const repoFull = `${owner}/${slug}`;
   const repoUrl = `https://github.com/${repoFull}`;
   const commit = process.env.VERCEL_GIT_COMMIT_SHA || "local";
@@ -63,17 +63,7 @@ export default function VercelProofPage() {
           >
             Call /api/vercel/proof
           </Link>
-          <Link
-            href="/api/vercel/proof"
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
-          >
-            curl example
-          </Link>
         </div>
-        <pre className="mt-3 overflow-x-auto rounded bg-gray-50 p-3 text-xs text-gray-800">
-          {`# From your terminal
-curl -s ${process.env.NEXT_PUBLIC_APP_URL || ""}/api/vercel/proof | jq`}
-        </pre>
         <p className="mt-2 text-gray-600">
           The response includes the deployment id, URL, and git source SHA
           reported by Vercel.

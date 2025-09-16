@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
+import { DEFAULT_FEEDBACK_NOTE } from '@/lib/constants'
 
 export const runtime = 'nodejs'
 
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     const { data: user, error: userError } = await (supabase as any)
       .from('users')
-      .select('username, public_key, ai_filter_enabled')
+      .select('username, public_key, ai_filter_enabled, ai_reviewer_enabled, feedback_note')
       .eq('id', link.user_id)
       .single()
 
@@ -39,6 +40,8 @@ export async function GET(request: NextRequest) {
       username: user.username,
       public_key: user.public_key,
       ai_filter_enabled: user.ai_filter_enabled,
+      ai_reviewer_enabled: user.ai_reviewer_enabled,
+      feedback_note: user.feedback_note ?? DEFAULT_FEEDBACK_NOTE,
     })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to resolve token' }, { status: 500 })
