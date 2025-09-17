@@ -34,7 +34,12 @@ export default function Header() {
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
       <div className="max-w-4xl mx-auto px-4 h-14 flex flex-wrap items-center justify-between gap-2">
-        Logo Placeholder
+        <Link
+          href="/"
+          className="text-xl crimson-text-semibold text-[#3b3a2c] hover:opacity-80"
+        >
+          SealedNote
+        </Link>
         <div className="flex items-center gap-2 text-sm text-gray-700">
           <a
             href={repoUrl}

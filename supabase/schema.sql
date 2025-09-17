@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   ai_filter_enabled BOOLEAN NOT NULL DEFAULT true,
   ai_reviewer_enabled BOOLEAN NOT NULL DEFAULT true,
   auto_delete_mean BOOLEAN NOT NULL DEFAULT false,
-  feedback_note TEXT DEFAULT 'Please share your honest thoughts, constructive feedback, or compliments',
+  feedback_note TEXT DEFAULT 'Please kindly share your honest thoughts, constructive feedback, or compliments.',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   CONSTRAINT username_lowercase CHECK (username = lower(username)),
   CONSTRAINT username_allowed_chars CHECK (username ~ '^[a-z0-9-]+$')
@@ -95,7 +95,7 @@ ALTER TABLE public.users
   ADD COLUMN IF NOT EXISTS feedback_note TEXT;
 
 UPDATE public.users
-SET feedback_note = 'Please share your honest thoughts, constructive feedback, or compliments'
+SET feedback_note = 'Please kindly share your honest thoughts, constructive feedback, or compliments.'
 WHERE feedback_note IS NULL;
 
 -- Scheduled (delayed) delivery storage (encrypted-at-rest fields only)

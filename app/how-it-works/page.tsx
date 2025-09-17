@@ -5,7 +5,7 @@ export default function HowItWorks() {
     <div className="min-h-full p-4">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
-          <Link href="/" className="text-blue-600 hover:underline">
+          <Link href="/" className="button-link">
             ← Back to Home
           </Link>
         </div>
@@ -30,8 +30,8 @@ export default function HowItWorks() {
 
             <div className="space-y-6">
               <div className="flex gap-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="font-bold text-blue-600">1</span>
+                <div className="w-12 h-12 bg-[#646148] rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="font-bold text-white">1</span>
                 </div>
                 <div>
                   <h3 className="font-semibold mb-2">
@@ -47,8 +47,8 @@ export default function HowItWorks() {
               </div>
 
               <div className="flex gap-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="font-bold text-blue-600">2</span>
+                <div className="w-12 h-12 bg-[#646148] rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="font-bold text-white">2</span>
                 </div>
                 <div>
                   <h3 className="font-semibold mb-2">
@@ -65,8 +65,8 @@ export default function HowItWorks() {
               </div>
 
               <div className="flex gap-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="font-bold text-blue-600">3</span>
+                <div className="w-12 h-12 bg-[#646148] rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="font-bold text-white">3</span>
                 </div>
                 <div>
                   <h3 className="font-semibold mb-2">
@@ -83,8 +83,8 @@ export default function HowItWorks() {
               </div>
 
               <div className="flex gap-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="font-bold text-blue-600">4</span>
+                <div className="w-12 h-12 bg-[#646148] rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="font-bold text-white">4</span>
                 </div>
                 <div>
                   <h3 className="font-semibold mb-2">Immediate Encryption</h3>
@@ -98,8 +98,8 @@ export default function HowItWorks() {
               </div>
 
               <div className="flex gap-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="font-bold text-blue-600">5</span>
+                <div className="w-12 h-12 bg-[#646148] rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="font-bold text-white">5</span>
                 </div>
                 <div>
                   <h3 className="font-semibold mb-2">You Read When Ready</h3>
@@ -133,8 +133,8 @@ export default function HowItWorks() {
                 </p>
               </div>
 
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <h3 className="font-semibold mb-2 text-blue-800">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h3 className="font-semibold mb-2 text-[#424133]">
                   No Raw Storage
                 </h3>
                 <p className="text-sm text-gray-700">
@@ -228,7 +228,7 @@ export default function HowItWorks() {
             </h2>
             <Link
               href="/auth/signin"
-              className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center px-6 py-3 font-semibold rounded-lg transition-colors"
             >
               Create Your Secure Inbox
             </Link>

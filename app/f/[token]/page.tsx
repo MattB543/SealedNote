@@ -85,19 +85,19 @@ export default function SubmitFeedback() {
                 shareToken: token,
               }),
             });
-          const data = await res.json();
-          if (res.ok) {
-            const risk = data?.anonymity?.risk_level;
-            const needs = !!data?.needs_improvement;
-            if (data?.disabled !== true && (risk !== "low" || needs)) {
-              setCoach(data);
-              setShowCoach(true);
-              setSubmitting(false);
-              return;
+            const data = await res.json();
+            if (res.ok) {
+              const risk = data?.anonymity?.risk_level;
+              const needs = !!data?.needs_improvement;
+              if (data?.disabled !== true && (risk !== "low" || needs)) {
+                setCoach(data);
+                setShowCoach(true);
+                setSubmitting(false);
+                return;
+              }
             }
-          }
           } catch {}
-      }
+        }
       }
 
       await finalizeSend(content.trim());
@@ -203,7 +203,7 @@ export default function SubmitFeedback() {
               onClick={() => {
                 setContent(coach.quality_rewrite);
               }}
-              className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="w-full py-2 rounded"
             >
               Apply quality rewrite
             </button>
@@ -226,9 +226,9 @@ export default function SubmitFeedback() {
       <div className="min-h-full flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
           <div className="mb-4">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+            <div className="w-16 h-16 bg-[#42413315] rounded-full flex items-center justify-center mx-auto">
               <svg
-                className="w-8 h-8 text-green-500"
+                className="w-8 h-8 text-[#424133]"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -267,7 +267,7 @@ export default function SubmitFeedback() {
           </p>
           <Link
             href="/"
-            className="text-blue-600 text-sm underline max-w-[230px] mx-auto block"
+            className="text-[#424133] text-sm underline max-w-[230px] mx-auto block"
           >
             Get your own free encrypted, anonymous, filtered inbox
           </Link>
@@ -285,9 +285,9 @@ export default function SubmitFeedback() {
             : "Send anonymous feedback"}
         </h2>
         <div className="mb-4 space-y-2">
-          <div className="text-gray-700 text-sm bg-gray-50 border border-gray-200 rounded p-3">
+          <div className="text-gray-700 text-md bg-gray-50 border border-gray-200 rounded p-3">
             {feedbackNote}
-            <p className="text-xs text-gray-500 mt-2 text-right">
+            <p className="text-md text-gray-500 mt-2 text-right">
               - {username}
             </p>
           </div>
@@ -307,7 +307,7 @@ export default function SubmitFeedback() {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Write your message here..."
-            className="w-full h-48 px-4 py-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full h-48 px-4 py-3 border border-gray-300 rounded-lg resize-none"
             maxLength={1000}
           />
           {content.length >= 800 && (
@@ -320,7 +320,7 @@ export default function SubmitFeedback() {
         {/* Scheduling panel */}
         <div className="mb-3">
           <div className="flex items-center gap-3 mb-2">
-            <label className="text-sm flex items-center gap-1">
+            <label className="text-md flex items-center gap-1">
               <input
                 type="radio"
                 name="sendMode"
@@ -330,7 +330,7 @@ export default function SubmitFeedback() {
               />
               Send now
             </label>
-            <label className="text-sm flex items-center gap-1">
+            <label className="text-md flex items-center gap-1">
               <input
                 type="radio"
                 name="sendMode"
@@ -344,7 +344,7 @@ export default function SubmitFeedback() {
           {sendMode === "schedule" && (
             <div className="p-3 border rounded bg-gray-50 text-sm">
               <div className="space-y-2">
-                <p className="text-xs text-gray-600 pt-1">
+                <p className="text-sm text-gray-600 pt-1">
                   We'll pick a random day/time in the selected range
                 </p>{" "}
                 <label className="flex items-center gap-2">
@@ -409,7 +409,7 @@ export default function SubmitFeedback() {
         <button
           onClick={handleSubmit}
           disabled={submitting || !content.trim()}
-          className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-3 font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting ? "Sending..." : "Send Feedback"}
         </button>
@@ -417,4 +417,3 @@ export default function SubmitFeedback() {
     </div>
   );
 }
-

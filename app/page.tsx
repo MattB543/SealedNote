@@ -12,27 +12,40 @@ export default async function Home() {
   } = await supabase.auth.getUser();
 
   if (user) {
-    redirect("/auth/unlock");
+    const { data: profile, error } = await supabase
+      .from("users")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!profile) {
+      redirect("/auth/setup");
+    }
+
+    redirect("/dashboard");
   }
 
   return (
     <main className="min-h-full px-6 py-12">
       <div className="mx-auto max-w-2xl">
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl text-center">
-            Anonymous feedback with no downsides
+          <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl text-center leading-relaxed">
+            Get anonymous feedback
+            <br />
+            with no downsides
           </h1>
-          <div className="mt-6 space-y-2 text-sm text-gray-700">
-            <Feature text="Open source and end-to-end encrypted. We can't read your feedback" />
-            <Feature text="Bring your own AI with an OpenRouter API key" />
-            <Feature text="Prevent counterproductive hurtful feedback with AI filtering" />
-            <Feature text="Improve feedback quality and protect submitter anonymity with AI" />
+          <div className="mt-6 space-y-2 text-md text-gray-700 flex flex-col items-center">
+            <Feature text="Open source and end-to-end encrypted" />
+            <Feature text="Use your own AI with an OpenRouter API key" />
+            <Feature text="Receive higher quality feedback with AI coaching" />
+            <Feature text="Prevent counterproductive feedback with AI filters" />
           </div>
-          <div className="mt-6 text-center">
-            <Link
-              href="/how-it-works"
-              className="text-blue-600 hover:underline"
-            >
+          <div className="mt-2 text-center">
+            <Link href="/how-it-works" className="button-link">
               Learn more →
             </Link>
           </div>
@@ -46,10 +59,5 @@ export default async function Home() {
 }
 
 function Feature({ text }: { text: string }) {
-  return (
-    <div className="flex items-start gap-2">
-      <span className="mt-1 text-blue-600">-</span>
-      <p className="flex-1 text-sm leading-snug">{text}</p>
-    </div>
-  );
+  return <p className="flex-1 text-md leading-snug">{text}</p>;
 }

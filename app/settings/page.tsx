@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSupabase } from "@/components/SupabaseProvider";
 import { browserCrypto } from "@/lib/crypto-browser";
@@ -34,11 +34,7 @@ export default function Settings() {
   const [openRouterKey, setOpenRouterKey] = useState("");
   const [hasOpenRouterKey, setHasOpenRouterKey] = useState(false);
 
-  useEffect(() => {
-    loadUserData();
-  }, []);
-
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     try {
       // Verify authenticated user and load profile
       const { data: authData, error: authError } =
@@ -93,7 +89,11 @@ export default function Settings() {
     } catch (error: any) {
       // Error loading user data
     }
-  };
+  }, [router, supabase]);
+
+  useEffect(() => {
+    loadUserData();
+  }, [loadUserData]);
 
   const saveCustomPrompt = async () => {
     try {
@@ -248,7 +248,7 @@ export default function Settings() {
   if (!user) {
     return (
       <div className="min-h-full flex items-center justify-center">
-        <div className="text-gray-500">Loading...</div>
+        <div className="text-[#424133] text-xl">Loading...</div>
       </div>
     );
   }
@@ -258,7 +258,10 @@ export default function Settings() {
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Settings</h1>
-          <Link href="/dashboard" className="text-blue-600 hover:underline">
+          <Link
+            href="/dashboard"
+            className="text-[#424133] hover:underline text-lg"
+          >
             ← Back to Dashboard
           </Link>
         </div>
@@ -271,26 +274,29 @@ export default function Settings() {
 
         {/* Feedback Note for Senders */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Feedback Note</h2>
-          <p className="text-sm text-gray-600 mb-2">
-            Shown on your share page above the text box.
-          </p>
-          <input
-            type="text"
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <div>
+              <h2 className="text-lg font-semibold">Feedback Note</h2>
+              <p className="text-sm text-gray-600">
+                Shown on your share page above the text box.
+              </p>
+            </div>
+          </div>
+          <textarea
             value={feedbackNote}
             onChange={(e) => setFeedbackNote(e.target.value)}
             placeholder={DEFAULT_FEEDBACK_NOTE}
             maxLength={200}
-            className="w-full px-3 py-2 border rounded-lg"
+            className="w-full px-3 py-3 border rounded-lg h-24 resize-none"
           />
-          <div className="flex items-center justify-between mt-2">
-            <span className="text-xs text-gray-500">
+          <div className="flex items-center justify-between mt-3">
+            <span className="text-sm text-gray-500">
               {feedbackNote.length}/200
             </span>
             <button
               onClick={saveFeedbackNote}
               disabled={saving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 text-base rounded disabled:opacity-50"
             >
               {saving ? "Saving..." : "Save"}
             </button>
@@ -299,20 +305,17 @@ export default function Settings() {
 
         {/* Custom Filter Instructions */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">
-            Custom Filter Instructions
-          </h2>
-          <div className="flex items-center gap-3 mb-3">
-            <label className="text-sm font-medium">AI Filtering</label>
-            <span
-              className={`text-xs px-2 py-1 rounded ${
-                user.ai_filter_enabled
-                  ? "bg-green-100 text-green-700"
-                  : "bg-gray-200 text-gray-700"
-              }`}
-            >
-              {user.ai_filter_enabled ? "Enabled" : "Disabled"}
-            </span>
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <div>
+              <h2 className="text-lg font-semibold">
+                Custom Filter Instructions
+              </h2>
+              <p className="text-sm text-gray-600">
+                {user.ai_filter_enabled
+                  ? "AI filtering is currently enabled. Customize how the AI filters feedback before it reaches you."
+                  : "AI filtering is currently disabled. Enable it to customize how feedback is filtered."}
+              </p>
+            </div>
             <button
               onClick={async () => {
                 const next = !user.ai_filter_enabled;
@@ -341,47 +344,43 @@ export default function Settings() {
                   setSaving(false);
                 }
               }}
-              className="ml-auto px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
+              className="px-4 py-2 text-base rounded disabled:opacity-50"
             >
               {user.ai_filter_enabled ? "Disable" : "Enable"}
             </button>
           </div>
-          <p className="text-sm text-gray-600 mb-3">
-            Customize how the AI filters feedback before it reaches you
-          </p>
 
           {user.ai_filter_enabled && (
             <textarea
               value={customPrompt}
               onChange={(e) => setCustomPrompt(e.target.value)}
-              className="w-full h-24 px-3 py-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full h-24 px-3 py-2 border rounded-lg resize-none"
               placeholder="Enter your custom filtering instructions..."
             />
           )}
 
-          <button
-            onClick={saveCustomPrompt}
-            disabled={saving}
-            className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          >
-            {saving ? "Saving..." : "Save Filter Settings"}
-          </button>
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={saveCustomPrompt}
+              disabled={saving}
+              className="px-4 py-2 text-base rounded disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save Filter Settings"}
+            </button>
+          </div>
         </div>
 
         {/* AI Reviewer Toggle */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">AI Reviewer (Coach)</h2>
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-sm font-medium">Status</span>
-            <span
-              className={`text-xs px-2 py-1 rounded ${
-                user.ai_reviewer_enabled
-                  ? "bg-green-100 text-green-700"
-                  : "bg-gray-200 text-gray-700"
-              }`}
-            >
-              {user.ai_reviewer_enabled ? "Enabled" : "Disabled"}
-            </span>
+          <div className="flex items-start justify-between gap-4 mb-2">
+            <div>
+              <h2 className="text-lg font-semibold">AI Reviewer (Coach)</h2>
+              <p className="text-sm text-gray-600">
+                {user.ai_reviewer_enabled
+                  ? "Senders will see coaching suggestions before sending."
+                  : "Enable to provide coaching suggestions to senders."}
+              </p>
+            </div>
             <button
               onClick={async () => {
                 const next = !user.ai_reviewer_enabled;
@@ -402,14 +401,11 @@ export default function Settings() {
                   setSaving(false);
                 }
               }}
-              className="ml-auto px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
+              className="px-4 py-2 text-base rounded disabled:opacity-50"
             >
               {user.ai_reviewer_enabled ? "Disable" : "Enable"}
             </button>
           </div>
-          <p className="text-sm text-gray-600">
-            When enabled, senders may see coaching suggestions before sending.
-          </p>
         </div>
 
         {/* Auto-delete toggle */}
@@ -418,29 +414,17 @@ export default function Settings() {
             !user.ai_filter_enabled ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
-          <h2 className="text-lg font-semibold mb-4">
-            Auto‑delete filtered feedback
-          </h2>
-          <div className="flex items-center gap-3 mb-3">
-            <span
-              className={`text-sm font-medium `}
-              title={
-                !user.ai_filter_enabled
-                  ? "Enable AI filtering to enable auto-delete feature"
-                  : undefined
-              }
-            >
-              Status
-            </span>
-            <span
-              className={`text-xs px-2 py-1 rounded ${
-                user.auto_delete_mean
-                  ? "bg-green-100 text-green-700"
-                  : "bg-gray-200 text-gray-700"
-              }`}
-            >
-              {user.auto_delete_mean ? "Enabled" : "Disabled"}
-            </span>
+          <div className="flex items-start justify-between gap-4 mb-2">
+            <div>
+              <h2 className="text-lg font-semibold">
+                Auto‑delete filtered feedback
+              </h2>
+              <p className="text-sm text-gray-600">
+                {user.auto_delete_mean
+                  ? "Messages flagged as mean are dropped silently."
+                  : "Enable to automatically drop feedback flagged as mean."}
+              </p>
+            </div>
             <button
               onClick={async () => {
                 const next = !user.auto_delete_mean;
@@ -462,7 +446,7 @@ export default function Settings() {
                 }
               }}
               disabled={!user.ai_filter_enabled || saving}
-              className="ml-auto px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-base rounded disabled:opacity-50 disabled:cursor-not-allowed"
               title={
                 !user.ai_filter_enabled
                   ? "Enable AI filtering to enable auto-delete feature"
@@ -472,32 +456,44 @@ export default function Settings() {
               {user.auto_delete_mean ? "Disable" : "Enable"}
             </button>
           </div>
-          <p className="text-sm text-gray-600">
-            If enabled, messages flagged as mean are dropped silently.
-          </p>
         </div>
 
         {/* Feedback Link */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Feedback Link</h2>
-          <div className="p-3 bg-gray-50 rounded-lg mb-3">
-            <p className="text-sm text-gray-600 mb-1">Current link:</p>
-            <code className="text-sm">{feedbackLink}</code>
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <div>
+              <h2 className="text-lg font-semibold">Feedback Link</h2>
+              <p className="text-sm text-gray-600">
+                Share this link to collect feedback securely.
+              </p>
+            </div>
           </div>
-          <button
-            onClick={generateNewLink}
-            className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
-          >
-            Generate New Link
-          </button>
-          <p className="text-xs text-gray-500 mt-2">
-            This will disable your old link
-          </p>
+          <div className="p-3 bg-gray-50 rounded-lg mb-2">
+            <p className="text-sm text-gray-600 mb-1">Current link:</p>
+            <code className="text-sm break-all">{feedbackLink}</code>
+          </div>
+          <div className="ml-auto flex flex-col items-end">
+            <button
+              onClick={generateNewLink}
+              className="px-4 py-2 text-base rounded"
+            >
+              Generate New Link
+            </button>
+            <p className="text-sm text-gray-500 mt-2">
+              This will disable your old link
+            </p>
+          </div>
         </div>
 
         {/* OpenRouter Key */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">OpenRouter API Key</h2>
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6 flex flex-col gap-2">
+          <div>
+            <h2 className="text-lg font-semibold">OpenRouter API Key</h2>
+            <p className="text-sm text-gray-600">
+              Use your own key to run AI filtering under your own control. If
+              left empty, the default app key is used
+            </p>
+          </div>
           {hasOpenRouterKey ? (
             <div className="mb-3 p-3 bg-green-50 rounded">
               <p className="text-sm text-green-800">
@@ -508,7 +504,7 @@ export default function Settings() {
               </p>
             </div>
           ) : (
-            <div className="mb-3 p-3 bg-gray-50 rounded">
+            <div className="p-3 bg-gray-50 rounded">
               <p className="text-sm text-gray-700">Using default app key</p>
             </div>
           )}
@@ -529,28 +525,27 @@ export default function Settings() {
               }
               className="flex-1 px-3 py-2 border rounded-lg"
             />
-            <button
-              onClick={saveOpenRouterKey}
-              disabled={saving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              {saving ? "Saving..." : "Save"}
-            </button>
             {hasOpenRouterKey && (
               <button
                 onClick={async () => {
                   setOpenRouterKey("");
                   await saveOpenRouterKey();
                 }}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                className="px-4 py-2 text-base rounded"
               >
                 Remove
               </button>
             )}
           </div>
-          <p className="text-xs text-gray-500 mt-2">
-            If left empty, the default app key is used
-          </p>
+          <div className="flex justify-end mt-3 ">
+            <button
+              onClick={saveOpenRouterKey}
+              disabled={saving}
+              className="px-4 py-2 text-base rounded disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save Key"}
+            </button>
+          </div>
         </div>
 
         {/* Private Key Management */}
@@ -558,16 +553,16 @@ export default function Settings() {
           <h2 className="text-lg font-semibold mb-4">Private Key Management</h2>
 
           {hasLocalKey ? (
-            <div className="p-3 bg-green-50 border border-green-200 rounded mb-3">
-              <p className="text-sm text-green-700 font-medium">
+            <div className="p-3 bg-gray-50 border border-[#424133] rounded mb-3">
+              <p className="text-md text-[#424133] font-medium">
                 ✓ Private key saved in browser
               </p>
-              <p className="text-xs text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 mt-1">
                 Your encrypted private key is stored locally in this browser
               </p>
               <button
                 onClick={removeLocalKey}
-                className="mt-3 text-sm text-red-600 hover:underline"
+                className="mt-3 inline-flex items-center px-3 py-1.5 rounded text-sm"
               >
                 Remove from browser
               </button>
@@ -577,7 +572,7 @@ export default function Settings() {
               <p className="text-sm text-yellow-700 font-medium">
                 ⚠️ Private key not saved in browser
               </p>
-              <p className="text-xs text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 mt-1">
                 You'll need to enter your full private key each time to read
                 feedback
               </p>
@@ -585,22 +580,29 @@ export default function Settings() {
           )}
 
           {hasLocalKey && (
-            <button
-              onClick={() => setShowExportModal(true)}
-              className="px-4 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700"
-            >
-              Export Private Key
-            </button>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowExportModal(true)}
+                className="px-4 py-2 text-base rounded"
+              >
+                Export Private Key
+              </button>
+            </div>
           )}
         </div>
 
         {/* Account */}
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-lg font-semibold mb-4">Account</h2>
-          <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <h2 className="text-lg font-semibold">Account</h2>
+              <p className="text-sm text-gray-600">
+                Signing out clears your session on this device.
+              </p>
+            </div>
             <button
               onClick={handleSignOut}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              className="px-4 py-2 text-base rounded"
             >
               Sign Out
             </button>
@@ -625,7 +627,7 @@ export default function Settings() {
                   value={exportPassword}
                   onChange={(e) => setExportPassword(e.target.value)}
                   placeholder="Enter your encryption password"
-                  className="w-full px-3 py-2 border rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border rounded-lg mb-3"
                 />
 
                 {exportError && (
@@ -635,7 +637,7 @@ export default function Settings() {
                 <div className="flex gap-2">
                   <button
                     onClick={handleExportKey}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="px-4 py-2 text-base rounded-lg"
                   >
                     Decrypt and Export
                   </button>
@@ -645,7 +647,7 @@ export default function Settings() {
                       setExportPassword("");
                       setExportError(null);
                     }}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                    className="px-4 py-2 text-base bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
                   >
                     Cancel
                   </button>
@@ -657,24 +659,24 @@ export default function Settings() {
                   <p className="text-sm font-semibold text-yellow-800 mb-2">
                     ⚠️ Keep this key secure!
                   </p>
-                  <p className="text-xs text-yellow-700">
+                  <p className="text-sm text-yellow-700">
                     Anyone with this key can read your encrypted feedback
                   </p>
                 </div>
 
                 <div className="bg-gray-100 p-3 rounded mb-4">
-                  <label className="text-xs text-gray-600">
+                  <label className="text-sm text-gray-600">
                     Your Private Key:
                   </label>
                   <textarea
                     readOnly
                     value={exportedKey}
-                    className="w-full h-32 mt-1 p-2 text-xs font-mono bg-white border rounded"
+                    className="w-full h-24 mt-1 p-2 text-sm font-mono bg-white border rounded"
                     onClick={(e) => e.currentTarget.select()}
                   />
                   <button
                     onClick={copyExportedKey}
-                    className="mt-2 text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                    className="mt-2 px-4 py-2 text-base rounded"
                   >
                     {copiedKey ? "✓ Copied!" : "Copy to Clipboard"}
                   </button>
@@ -687,7 +689,7 @@ export default function Settings() {
                     setExportedKey("");
                     setExportError(null);
                   }}
-                  className="w-full py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                  className="w-full px-4 py-2 text-base bg-gray-600 text-white rounded-lg hover:bg-gray-700"
                 >
                   Close
                 </button>

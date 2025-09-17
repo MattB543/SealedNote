@@ -176,10 +176,10 @@ export default function Setup() {
             {step === 1 && (
               <div className="space-y-8">
                 <div>
-                  <label className="block text-sm font-medium">
+                  <label className="block text-md font-medium">
                     Choose a username
                   </label>
-                  <p className="text-xs text-gray-500 mb-2">
+                  <p className="text-sm text-gray-500 mb-2">
                     Your feedback link will be:{" "}
                     {process.env.NEXT_PUBLIC_APP_URL}/f/
                     {username || "your-username"}
@@ -189,15 +189,15 @@ export default function Setup() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value.toLowerCase())}
                     placeholder="john-doe"
-                    className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium">
+                  <label className="block text-md font-medium">
                     Feedback note for senders
                   </label>
-                  <p className="text-xs text-gray-500 mb-2">
+                  <p className="text-sm text-gray-500 mb-2">
                     Shown on your public feedback page
                   </p>
                   <textarea
@@ -206,7 +206,7 @@ export default function Setup() {
                     placeholder={DEFAULT_FEEDBACK_NOTE}
                     maxLength={200}
                     rows={2}
-                    className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg resize-none"
                   />
                 </div>
 
@@ -227,7 +227,7 @@ export default function Setup() {
                       setError(null);
                       setStep(2);
                     }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="px-4 py-2 rounded-lg"
                   >
                     Next
                   </button>
@@ -239,7 +239,7 @@ export default function Setup() {
               <div className="space-y-5">
                 <div>
                   <div className="flex items-center gap-3 ">
-                    <label className="text-sm font-medium flex-1">
+                    <label className="text-md font-medium flex-1">
                       AI Filtering
                     </label>
                     <input
@@ -253,15 +253,15 @@ export default function Setup() {
                       }}
                     />
                   </div>
-                  <p className="text-xs text-gray-500 mb-2">
-                    Have an AI read each feedback and apply filters
+                  <p className="text-sm text-gray-500 mb-2">
+                    Have an AI read each feedback and apply a filter
                   </p>
                   {aiEnabled && (
                     <div>
                       <textarea
                         value={customPrompt}
                         onChange={(e) => setCustomPrompt(e.target.value)}
-                        className="w-full text-sm h-18 px-3 py-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full text-sm h-18 px-3 py-2 border rounded-lg resize-none"
                         placeholder="e.g., Filter out only serious insults, threats, and purely hurtful comments with zero constructive value"
                       />
                     </div>
@@ -270,7 +270,7 @@ export default function Setup() {
 
                 <div>
                   <div className="flex items-center gap-3">
-                    <label className="text-sm font-medium flex-1">
+                    <label className="text-md font-medium flex-1">
                       Auto-delete filtered feedback
                     </label>
                     <input
@@ -281,14 +281,14 @@ export default function Setup() {
                       disabled={!aiEnabled}
                     />
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-sm text-gray-500">
                     Drops filtered messages instead of saving them
                   </p>
                 </div>
 
                 <div>
                   <div className="flex items-center gap-3">
-                    <label className="text-sm font-medium flex-1">
+                    <label className="text-md font-medium flex-1">
                       AI Coach for Senders
                     </label>
                     <input
@@ -298,17 +298,18 @@ export default function Setup() {
                       onChange={(e) => setAiReviewerEnabled(e.target.checked)}
                     />
                   </div>
-                  <p className="text-xs text-gray-500">
-                    Gives senders coaching to improve feedback quality
+                  <p className="text-sm text-gray-500">
+                    Gives senders customized coaching to improve feedback
+                    quality
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium ">
+                  <label className="block text-md font-medium ">
                     Your OpenRouter API key{" "}
-                    <span className="text-xs text-gray-500">Optional</span>
+                    <span className="text-sm text-gray-500">Optional</span>
                   </label>
-                  <p className="text-xs text-gray-500 mb-2">
+                  <p className="text-sm text-gray-500 mb-2">
                     Used for AI calls. Leave empty to use the app's default key
                   </p>
                   <input
@@ -316,7 +317,7 @@ export default function Setup() {
                     value={openRouterKey}
                     onChange={(e) => setOpenRouterKey(e.target.value)}
                     placeholder="sk-or-v1-..."
-                    className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
 
@@ -330,7 +331,7 @@ export default function Setup() {
                   <button
                     onClick={handleSetup}
                     disabled={loading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    className="px-4 py-2 rounded-lg disabled:opacity-50"
                   >
                     {loading ? "Setting up..." : "Create Encryption Key"}
                   </button>
@@ -363,7 +364,7 @@ export default function Setup() {
             </div>
 
             <div className="bg-gray-100 p-3 rounded mb-4">
-              <label className="text-xs text-gray-600">Your Private Key:</label>
+              <label className="text-sm text-gray-600">Your Private Key:</label>
               <textarea
                 readOnly
                 value={privateKeyToDisplay}
@@ -372,13 +373,13 @@ export default function Setup() {
               />
               <button
                 onClick={copyToClipboard}
-                className="mt-2 text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                className="mt-2 text-sm px-3 py-1 rounded"
               >
                 {copiedToClipboard ? "✓ Copied!" : "Copy to Clipboard"}
               </button>
             </div>
 
-            <div className="mb-4 p-3 bg-blue-50 rounded">
+            <div className="mb-4 p-3 bg-gray-50 rounded">
               <label className="flex items-start gap-2">
                 <input
                   type="checkbox"
@@ -390,7 +391,7 @@ export default function Setup() {
                   <p className="text-sm font-medium">
                     Save key in this browser
                   </p>
-                  <p className="text-xs text-gray-600">
+                  <p className="text-sm text-gray-600">
                     Encrypt and save your key locally in this browser so you can
                     use a password instead of pasting the full key every time
                   </p>
@@ -426,7 +427,7 @@ export default function Setup() {
               disabled={!confirmedSaved}
               className="w-full py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              Unlock Inbox
+              Test Decryption
             </button>
           </div>
         </div>

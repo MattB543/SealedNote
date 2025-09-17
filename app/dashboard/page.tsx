@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSupabase } from "@/components/SupabaseProvider";
 import { browserCrypto } from "@/lib/crypto-browser";
@@ -28,27 +28,16 @@ export default function Dashboard() {
   const [decryptedFeedback, setDecryptedFeedback] = useState<
     DecryptedFeedback[]
   >([]);
-  const [password, setPassword] = useState("");
-  const [privateKeyInput, setPrivateKeyInput] = useState("");
   const [privateKey, setPrivateKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [decrypting, setDecrypting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [feedbackLink, setFeedbackLink] = useState("");
   const [activeTab, setActiveTab] = useState<"inbox" | "mean">("inbox");
   const [copied, setCopied] = useState(false);
-  const [decryptMethod, setDecryptMethod] = useState<"password" | "key">(
-    "password"
-  );
-  const [canUsePassword, setCanUsePassword] = useState(false);
+  const [initializing, setInitializing] = useState(true);
 
-  useEffect(() => {
-    loadUserData();
-    loadFeedback();
-  }, []);
-
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     try {
       // Verify authenticated user and load profile
       const { data: authData, error: authError } =
@@ -68,22 +57,6 @@ export default function Dashboard() {
       if (userError) throw userError;
       setUser(userData);
 
-      // Check if we have encrypted private key in localStorage
-      const encryptedPrivateKey = localStorage.getItem(
-        "ff_encrypted_private_key"
-      );
-      const storedSalt = localStorage.getItem("ff_salt");
-
-      if (encryptedPrivateKey && storedSalt && storedSalt === userData.salt) {
-        // We have the encrypted private key, user can use password to decrypt
-        setDecryptMethod("password");
-        setCanUsePassword(true);
-      } else {
-        // No stored key, user needs to paste their private key
-        setDecryptMethod("key");
-        setCanUsePassword(false);
-      }
-
       // Get active feedback link
       const { data: linkData, error: linkError } = await supabase
         .from("feedback_links")
@@ -100,9 +73,9 @@ export default function Dashboard() {
     } catch (error: any) {
       // Error loading user data
     }
-  };
+  }, [router, supabase]);
 
-  const loadFeedback = async () => {
+  const loadFeedback = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch("/api/feedback/list");
@@ -116,99 +89,83 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleDecryptWithPassword = async () => {
-    try {
-      setDecrypting(true);
-      setError(null);
-
-      if (!password) {
-        throw new Error("Please enter your encryption password");
-      }
-
-      if (!user?.salt) {
-        throw new Error("User data not loaded");
-      }
-
-      // Get encrypted private key from localStorage
-      const encryptedPrivateKey = localStorage.getItem(
-        "ff_encrypted_private_key"
+  const decryptAllFeedback = useCallback(
+    async (key: string) => {
+      const decrypted = await Promise.all(
+        feedback.map(async (item) => {
+          try {
+            const content = await browserCrypto.decrypt(
+              item.encrypted_content,
+              key
+            );
+            const reasoning = await browserCrypto.decrypt(
+              item.encrypted_reasoning,
+              key
+            );
+            return { ...item, content, reasoning };
+          } catch (err) {
+            return {
+              ...item,
+              content: "[Decryption failed]",
+              reasoning: "[Decryption failed]",
+            };
+          }
+        })
       );
+      setDecryptedFeedback(decrypted);
+    },
+    [feedback]
+  );
 
-      if (encryptedPrivateKey) {
-        // Decrypt the private key using password
-        const decryptedPrivateKey =
-          await browserCrypto.decryptPrivateKeyWithPassword(
-            encryptedPrivateKey,
-            password,
-            user.salt
-          );
-        setPrivateKey(decryptedPrivateKey);
-
-        // Decrypt all feedback
-        await decryptAllFeedback(decryptedPrivateKey);
-      } else {
-        throw new Error(
-          'No stored private key found. Please use the "Enter Private Key" option.'
-        );
-      }
-    } catch (error: any) {
-      setError(error.message);
-    } finally {
-      setDecrypting(false);
-    }
-  };
-
-  const handleDecryptWithKey = async () => {
-    try {
-      setDecrypting(true);
-      setError(null);
-
-      if (!privateKeyInput) {
-        throw new Error("Please paste your private key");
-      }
-
-      // Validate that it looks like a private key
-      if (!privateKeyInput.includes("BEGIN PRIVATE KEY")) {
-        throw new Error("Invalid private key format");
-      }
-
-      setPrivateKey(privateKeyInput);
-
-      // Decrypt all feedback
-      await decryptAllFeedback(privateKeyInput);
-    } catch (error: any) {
-      setError(error.message);
-    } finally {
-      setDecrypting(false);
-    }
-  };
-
-  const decryptAllFeedback = async (key: string) => {
-    const decrypted = await Promise.all(
-      feedback.map(async (item) => {
-        try {
-          const content = await browserCrypto.decrypt(
-            item.encrypted_content,
-            key
-          );
-          const reasoning = await browserCrypto.decrypt(
-            item.encrypted_reasoning,
-            key
-          );
-          return { ...item, content, reasoning };
-        } catch (err) {
-          return {
-            ...item,
-            content: "[Decryption failed]",
-            reasoning: "[Decryption failed]",
-          };
+  useEffect(() => {
+    let redirected = false;
+    const init = async () => {
+      try {
+        if (typeof window === "undefined") return;
+        const sessionKey = sessionStorage.getItem("ff_session_private_key");
+        if (!sessionKey) {
+          redirected = true;
+          router.replace("/auth/unlock");
+          return;
         }
-      })
-    );
-    setDecryptedFeedback(decrypted);
-  };
+        setPrivateKey(sessionKey);
+        await Promise.all([loadUserData(), loadFeedback()]);
+      } catch (err: any) {
+        setError(err.message ?? "Failed to load dashboard");
+      } finally {
+        if (!redirected) {
+          setInitializing(false);
+        }
+      }
+    };
+
+    void init();
+
+    return () => {
+      redirected = true;
+    };
+  }, [loadFeedback, loadUserData, router]);
+
+  useEffect(() => {
+    if (!privateKey || feedback.length === 0) {
+      if (feedback.length === 0) {
+        setDecryptedFeedback([]);
+      }
+      return;
+    }
+
+    const run = async () => {
+      try {
+        await decryptAllFeedback(privateKey);
+      } catch (err: any) {
+        setError(err.message ?? "Failed to decrypt feedback");
+      }
+    };
+
+    void run();
+  }, [privateKey, decryptAllFeedback, feedback.length]);
 
   const markAsRead = async (feedbackId: string) => {
     try {
@@ -246,24 +203,97 @@ export default function Dashboard() {
   const unreadMean = feedback.filter(
     (f) => f.is_mean && f.status === "unread"
   ).length;
+  const hasFilteredMessages = feedback.some((f) => f.is_mean);
+  const autoDeleteEnabled = Boolean(user?.auto_delete_mean);
 
-  if (loading) {
+  useEffect(() => {
+    if (autoDeleteEnabled && !hasFilteredMessages && activeTab !== "inbox") {
+      setActiveTab("inbox");
+    }
+  }, [activeTab, autoDeleteEnabled, hasFilteredMessages]);
+
+  if (initializing || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-500">Loading...</div>
+      <div className="flex items-center justify-center">
+        <div className="text-[#424133] text-xl">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-4 pb-20">
+    <div className="p-4 pb-20">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold">Your Feedback Dashboard</h1>
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6 paper-bg">
+          <div className="flex flex-row items-center justify-between mb-4">
+            <div className="flex items-center gap-3 p-2 px-3 bg-gray-50 rounded-lg">
+              <span className="text-md text-gray-600">{feedbackLink}</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={copyLink}
+                  className="px-3 py-1 h-[28px] text-sm !bg-gray-100 !text-[#424133] rounded hover:!bg-gray-200"
+                >
+                  {copied ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="icon icon-tabler icons-tabler-outline icon-tabler-check"
+                    >
+                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                      <path d="M5 12l5 5l10 -10" />
+                    </svg>
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="icon icon-tabler icons-tabler-outline icon-tabler-copy"
+                    >
+                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                      <path d="M7 7m0 2.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z" />
+                      <path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1" />
+                    </svg>
+                  )}
+                </button>
+                <button
+                  onClick={() => window.open(feedbackLink, "_blank")}
+                  className="px-3 py-1 text-sm h-[28px] !bg-gray-100 !text-[#424133] rounded hover:!bg-gray-200"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="icon icon-tabler icons-tabler-outline icon-tabler-external-link"
+                  >
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                    <path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" />
+                    <path d="M11 13l9 -9" />
+                    <path d="M15 4h5v5" />
+                  </svg>
+                </button>
+              </div>
+            </div>
             <Link
               href="/settings"
-              className="flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+              className="flex items-center gap-1 px-3 py-1.5 text-md bg-gray-100 text-[#424133] rounded-lg hover:bg-gray-200 h-[44px]"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -272,7 +302,7 @@ export default function Dashboard() {
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="1.8"
+                strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 className="icon icon-tabler icons-tabler-outline icon-tabler-settings"
@@ -285,129 +315,43 @@ export default function Dashboard() {
             </Link>
           </div>
 
-          <div className="flex items-center gap-2 mb-6 p-3 bg-gray-50 rounded-lg">
-            <span className="text-sm text-gray-600">Your feedback link:</span>
-            <code className="flex-1 text-sm bg-white px-2 py-1 rounded border">
-              {feedbackLink}
-            </code>
-            <button
-              onClick={copyLink}
-              className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              {copied ? "Copied!" : "Copy"}
-            </button>
-            <button
-              onClick={() => window.open(feedbackLink, "_blank")}
-              className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-            >
-              Open
-            </button>
-          </div>
+          <div className="h-px bg-gray-200 my-4"></div>
 
-          <div className="flex gap-4 mb-6">
-            <button
-              onClick={() => setActiveTab("inbox")}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                activeTab === "inbox"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              Inbox {unreadInbox > 0 && `(${unreadInbox} unread)`}
-            </button>
-            <button
-              onClick={() => setActiveTab("mean")}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                activeTab === "mean"
-                  ? "bg-orange-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              Filtered Feedback {unreadMean > 0 && `(${unreadMean} unread)`}
-            </button>
-          </div>
-
-          {!privateKey && feedback.length > 0 && (
-            <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-              <div className="mb-4">
-                {canUsePassword && (
-                  <div className="flex gap-2 mb-3">
-                    <button
-                      onClick={() => setDecryptMethod("password")}
-                      className={`px-3 py-1 text-sm rounded ${
-                        decryptMethod === "password"
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                      }`}
-                    >
-                      Use Password
-                    </button>
-
-                    <button
-                      onClick={() => setDecryptMethod("key")}
-                      className={`px-3 py-1 text-sm rounded ${
-                        decryptMethod === "key"
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                      }`}
-                    >
-                      Enter Private Key
-                    </button>
-                  </div>
-                )}
-
-                {decryptMethod === "password" && canUsePassword ? (
-                  <>
-                    <p className="mb-3 text-sm font-medium">
-                      🔒 Enter encryption password to read feedback:
-                    </p>
-                    <div className="flex gap-2">
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Your encryption password"
-                        className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <button
-                        onClick={handleDecryptWithPassword}
-                        disabled={decrypting}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                      >
-                        {decrypting ? "Decrypting..." : "Decrypt"}
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <p className="mb-3 text-sm font-medium">
-                      🔑 Paste your private key to decrypt feedback:
-                    </p>
-                    <textarea
-                      placeholder="-----BEGIN PRIVATE KEY-----
-...paste your private key here...
------END PRIVATE KEY-----"
-                      value={privateKeyInput}
-                      onChange={(e) => setPrivateKeyInput(e.target.value)}
-                      className="w-full h-24 p-2 text-xs font-mono border rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-
-                    <button
-                      onClick={handleDecryptWithKey}
-                      disabled={decrypting}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      {decrypting ? "Decrypting..." : "Decrypt Feedback"}
-                    </button>
-                  </>
-                )}
-              </div>
-
-              {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+          <h1 className="text-2xl font-bold text-[#424133] mb-4">
+            Your Feedback
+          </h1>
+          {(!autoDeleteEnabled || hasFilteredMessages) && (
+            <div className="flex gap-4 mb-6">
+              <button
+                onClick={() => setActiveTab("inbox")}
+                className={`px-4 py-2 rounded-lg font-medium ${
+                  activeTab === "inbox"
+                    ? "bg-[#646148] text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                Inbox {unreadInbox > 0 && `(${unreadInbox} unread)`}
+              </button>
+              <button
+                onClick={() => setActiveTab("mean")}
+                className={`px-4 py-2 rounded-lg font-medium ${
+                  activeTab === "mean"
+                    ? "bg-orange-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                Filtered Feedback {unreadMean > 0 && `(${unreadMean} unread)`}
+              </button>
             </div>
           )}
 
-          {privateKey && decryptedFeedback.length > 0 && (
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+
+          {privateKey && (
             <div className="space-y-4">
               {activeTab === "inbox" && (
                 <>
@@ -421,30 +365,30 @@ export default function Dashboard() {
                         key={item.id}
                         className={`p-4 rounded-lg border ${
                           item.status === "unread"
-                            ? "bg-blue-50 border-blue-200"
+                            ? "bg-[#42413315] border-[#42413315]"
                             : "bg-gray-50 border-gray-200"
                         }`}
                       >
                         <div className="mb-2">
-                          <span
-                            className={`text-xs px-2 py-1 rounded ${
-                              item.status === "unread"
-                                ? "bg-blue-100 text-blue-700"
-                                : "bg-gray-200 text-gray-600"
-                            }`}
-                          >
-                            {item.status === "unread" ? "Unread" : "Read"}
-                          </span>
                           {item.reasoning && (
                             <abbr
-                              className="text-xs px-2 py-1 rounded bg-gray-200 text-gray-600 ml-2 cursor-help no-underline"
+                              className="text-sm px-2 py-1 rounded bg-gray-200 text-gray-600 cursor-help no-underline"
                               title={item.reasoning}
                             >
                               AI Reasoning
                             </abbr>
                           )}
-                          <span className="ml-2 text-xs text-gray-500">
-                            {new Date(item.created_at).toLocaleString()}
+                          <span className="ml-2 text-sm text-gray-500">
+                            {new Date(item.created_at).toLocaleString(
+                              undefined,
+                              {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }
+                            )}
                           </span>
                         </div>
 
@@ -452,7 +396,7 @@ export default function Dashboard() {
                         {item.status === "unread" && (
                           <button
                             onClick={() => markAsRead(item.id)}
-                            className="text-sm text-blue-600 hover:underline"
+                            className="text-sm button-link !text-gray-500"
                           >
                             Mark as Read
                           </button>
@@ -481,7 +425,7 @@ export default function Dashboard() {
                       >
                         <div className="mb-2">
                           <span
-                            className={`text-xs px-2 py-1 rounded ${
+                            className={`text-sm px-2 py-1 rounded ${
                               item.status === "unread"
                                 ? "bg-orange-100 text-orange-700"
                                 : "bg-gray-200 text-gray-600"
@@ -489,7 +433,7 @@ export default function Dashboard() {
                           >
                             {item.status === "unread" ? "Unread" : "Read"}
                           </span>
-                          <span className="ml-2 text-xs text-gray-500">
+                          <span className="ml-2 text-sm text-gray-500">
                             {new Date(item.created_at).toLocaleString()}
                           </span>
                         </div>
@@ -500,7 +444,7 @@ export default function Dashboard() {
                         {item.status === "unread" && (
                           <button
                             onClick={() => markAsRead(item.id)}
-                            className="mt-2 text-sm text-blue-600 hover:underline"
+                            className="mt-2 text-sm"
                           >
                             Mark as Read
                           </button>

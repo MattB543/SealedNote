@@ -15,9 +15,11 @@ export default function Unlock() {
   const [privateKeyInput, setPrivateKeyInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<"password" | "key">("password");
 
   useEffect(() => {
     (async () => {
+      let redirected = false;
       try {
         const { data: auth } = await supabase.auth.getUser();
         const uid = auth?.user?.id;
@@ -25,20 +27,37 @@ export default function Unlock() {
           router.push("/auth/signin");
           return;
         }
-        const { data: u } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from("users")
           .select("salt")
           .eq("id", uid)
-          .single();
-        if (u?.salt) {
-          setUserSalt(u.salt);
+          .maybeSingle();
+
+        if (profileError) {
+          throw profileError;
+        }
+
+        if (!profile) {
+          redirected = true;
+          router.replace("/auth/setup");
+          return;
+        }
+
+        if (profile.salt) {
+          setUserSalt(profile.salt);
         }
         const enc = localStorage.getItem("ff_encrypted_private_key");
         const storedSalt = localStorage.getItem("ff_salt");
-        setCanUsePassword(Boolean(enc && storedSalt && u?.salt && storedSalt === u.salt));
-      } catch {}
-      finally {
-        setInitializing(false);
+        const passwordPossible = Boolean(
+          enc && storedSalt && profile.salt && storedSalt === profile.salt
+        );
+        setCanUsePassword(passwordPossible);
+        setMode(passwordPossible ? "password" : "key");
+      } catch {
+      } finally {
+        if (!redirected) {
+          setInitializing(false);
+        }
       }
     })();
   }, [router, supabase]);
@@ -86,9 +105,11 @@ export default function Unlock() {
   if (initializing) {
     return (
       <div className="min-h-full flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white rounded-lg shadow p-6">
+        <div className="w-full min-h-[254px] max-w-md bg-white rounded-lg shadow p-6">
           <h1 className="text-2xl font-bold mb-2">Unlock</h1>
-          <p className="text-sm text-gray-600">Preparing your unlock options…</p>
+          <p className="text-sm text-gray-600">
+            Preparing your unlock options…
+          </p>
         </div>
       </div>
     );
@@ -98,29 +119,38 @@ export default function Unlock() {
     <div className="min-h-full flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-lg shadow p-6">
         <h1 className="text-2xl font-bold mb-4">Unlock</h1>
-        <p className="text-sm text-gray-600 mb-4">
-          Unlock your inbox by entering your encryption password or pasting your
-          private key.
+        <p className="text-md text-gray-600 mb-4">
+          Unlock your inbox by entering your encryption password. Or{" "}
+          <button
+            type="button"
+            className="button-link"
+            onClick={() => setMode("key")}
+          >
+            use your private key directly
+          </button>
+          .
         </p>
 
         {error && (
-          <div className="mb-3 p-3 bg-red-100 text-red-700 rounded">{error}</div>
+          <div className="mb-3 p-3 bg-red-100 text-red-700 rounded">
+            {error}
+          </div>
         )}
-        {canUsePassword ? (
+        {mode === "password" && canUsePassword ? (
           <div className="space-y-3">
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Your encryption password"
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border rounded-lg"
             />
             <button
               onClick={unlockWithPassword}
               disabled={loading}
-              className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              className="w-full py-2 rounded disabled:opacity-50"
             >
-              {loading ? "Unlocking..." : "Unlock"}
+              {loading ? "Unlocking..." : "Unlock Inbox"}
             </button>
           </div>
         ) : (
@@ -129,15 +159,24 @@ export default function Unlock() {
               value={privateKeyInput}
               onChange={(e) => setPrivateKeyInput(e.target.value)}
               placeholder={`-----BEGIN PRIVATE KEY-----\n...paste your private key here...\n-----END PRIVATE KEY-----`}
-              className="w-full h-28 p-2 text-xs font-mono border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full h-28 p-2 text-sm font-mono border rounded-lg"
             />
             <button
               onClick={unlockWithKey}
               disabled={loading}
-              className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              className="w-full py-2 rounded disabled:opacity-50"
             >
               {loading ? "Unlocking..." : "Unlock"}
             </button>
+            {canUsePassword && (
+              <button
+                type="button"
+                onClick={() => setMode("password")}
+                className="button-link"
+              >
+                Use password instead
+              </button>
+            )}
           </div>
         )}
       </div>
