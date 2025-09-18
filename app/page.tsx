@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -32,13 +33,20 @@ export default async function Home() {
   return (
     <main className="min-h-full px-6 py-12">
       <div className="mx-auto max-w-2xl">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl text-center leading-relaxed">
+        <div className="relative bg-white rounded-lg shadow-lg p-8">
+          <Image
+            src="/sn_wax_seal.png"
+            alt="Wax seal"
+            width={120}
+            height={120}
+            className="absolute -top-14 left-1/2 transform -translate-x-1/2 z-10"
+          />
+          <h1 className="text-4xl mt-10 font-bold text-gray-900 sm:text-5xl text-center leading-relaxed">
             Get anonymous feedback
             <br />
-            with no downsides
+            without the downsides
           </h1>
-          <div className="mt-6 space-y-2 text-md text-gray-700 flex flex-col items-center">
+          <div className="mt-6 space-y-0.5 text-lg text-gray-700 flex flex-col items-center">
             <Feature text="Open source and end-to-end encrypted" />
             <Feature text="Use your own AI with an OpenRouter API key" />
             <Feature text="Receive higher quality feedback with AI coaching" />

@@ -4,6 +4,22 @@ import { DEFAULT_FEEDBACK_NOTE } from '@/lib/constants'
 
 export const runtime = 'nodejs'
 
+// Simple rate limiting
+type Bucket = { count: number; resetAt: number };
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 30;
+const buckets = new Map<string, Bucket>();
+
+function getClientIp(req: NextRequest): string {
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0].trim();
+  const xr = req.headers.get("x-real-ip");
+  if (xr) return xr;
+  const cf = req.headers.get("cf-connecting-ip");
+  if (cf) return cf;
+  return "unknown";
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -11,6 +27,35 @@ export async function GET(request: NextRequest) {
 
     if (!token) {
       return NextResponse.json({ error: 'Missing token' }, { status: 400 })
+    }
+
+    // Validate token format (alphanumeric and hyphens, 3-100 chars)
+    if (!/^[a-z0-9-]{3,100}$/i.test(token)) {
+      return NextResponse.json({ error: 'Invalid token format' }, { status: 400 })
+    }
+
+    // Rate limiting by IP
+    const ip = getClientIp(request);
+    const now = Date.now();
+    const bucket = buckets.get(ip);
+    
+    if (!bucket || now >= bucket.resetAt) {
+      buckets.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    } else {
+      bucket.count++;
+      if (bucket.count > RATE_LIMIT_MAX) {
+        return NextResponse.json(
+          { error: 'Too many requests' },
+          { status: 429 }
+        );
+      }
+    }
+
+    // Clean up old buckets periodically
+    if (buckets.size > 1000) {
+      buckets.forEach((v, k) => {
+        if (now >= v.resetAt) buckets.delete(k);
+      });
     }
 
     const supabase = createServerSupabaseClient()

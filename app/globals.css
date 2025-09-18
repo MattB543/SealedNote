@@ -10,11 +10,6 @@ body {
   font-family: var(--font-crimson), var(--font-inter), serif;
 }
 
-.paper-bg {
-  background-image: url("/paper_bg_v2.jpg");
-  background-repeat: repeat;
-}
-
 h1,
 h2 {
   font-family: var(--font-merienda), inherit;
@@ -71,7 +66,10 @@ select:disabled {
   opacity: 0.85;
 }
 
-input:focus,
+input[type="radio"] {
+  accent-color: #424133;
+}
+
 textarea:focus,
 select:focus,
 [type="button"]:focus,

@@ -32,8 +32,8 @@ export default function Header() {
       : undefined;
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
-      <div className="max-w-4xl mx-auto px-4 h-14 flex flex-wrap items-center justify-between gap-2">
+    <header className="bg-white border-b border-gray-200 sticky top-0 z-30 px-4">
+      <div className="max-w-4xl mx-auto h-14 flex flex-wrap items-center justify-between gap-2">
         <Link
           href="/"
           className="text-xl crimson-text-semibold text-[#3b3a2c] hover:opacity-80"

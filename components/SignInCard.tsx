@@ -40,7 +40,7 @@ export function SignInForm() {
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
       )}
       {message && (
-        <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">
+        <div className="mb-4 p-3 bg-gray-100 text-[#424133] rounded">
           {message}
         </div>
       )}
@@ -63,7 +63,7 @@ export function SignInForm() {
         </button>
       </div>
 
-      <p className="mt-6 text-center text-sm text-gray-400">
+      <p className="mt-4 text-center text-sm text-gray-400">
         By continuing, you agree to our terms and privacy policy
       </p>
     </div>

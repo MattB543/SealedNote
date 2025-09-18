@@ -129,7 +129,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-
 async function coachWithOpenRouter(
   content: string,
   customPrompt: string,
@@ -151,8 +150,11 @@ async function coachWithOpenRouter(
         body: JSON.stringify({
           model: "openai/gpt-5-mini",
           messages: [{ role: "user", content: prompt }],
-          max_tokens: 1200,
+          max_tokens: 5000,
           response_format: { type: "json_object" },
+          reasoning: {
+            effort: "low",
+          },
         }),
       }
     );
@@ -202,8 +204,8 @@ function buildCoachPrompt(content: string, customPrompt: string) {
   return `
 You are an anonymous feedback reviewing assistant. Your job is to:
 1) Identify any risk that the text could reveal the author's identity (names, dates/times, locations, platforms, unique events).
-2) Improve the feedback for constructiveness and clarity (impact, one actionable suggestion, and one concise example if appropriate).
-3) Provide succinct guidance, then supply rewrites the sender can paste.
+2) Suggest improvements for constructiveness and clarity WITHOUT adding new information.
+3) Provide rewrites that preserve the original message while improving delivery.
 
 Recipient preference (tone/policy): "${
     customPrompt ||
@@ -221,13 +223,19 @@ Output STRICT JSON (no prose) with exactly these keys:
   "anon_rewrite": string | null
 }
 
-Guidance:
-- Keep explanations concise (1–2 short sentences each).
-- Rewrites must be neutral, respectful, and avoid identifying details (no names, dates/times, places, platforms).
-- If anonymity risk is not low, provide an anonymized rewrite in "anon_rewrite"; otherwise null.
-- If quality can be improved, provide a stronger, constructive version in "quality_rewrite"; otherwise null.
-- "suggestions" should be short, actionable bullets (phrases, not paragraphs).
-- Provide 3 short "questions_to_help" for further refinement.
+CRITICAL REWRITE RULES:
+- NEVER add information, examples, or specifics not in the original feedback
+- ONLY reorganize, rephrase, and soften the existing content
+- Preserve the exact same core message and intent
+- If anonymity risk exists, generalize identifying details but don't invent new ones
+- Make the tone more constructive and easier to receive
+- Keep rewrites concise - similar length to original
+
+Other guidance:
+- "suggestions" should be short tips for the sender (not content to add)
+- Provide 2-3 brief "questions_to_help" for sender's consideration
+- "quality_rewrite": improved tone/structure version (null if already good)
+- "anon_rewrite": anonymized version (null if risk is low)
 
 FEEDBACK:
 """${content}"""`;

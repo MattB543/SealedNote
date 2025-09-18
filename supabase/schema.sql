@@ -116,3 +116,22 @@ ALTER TABLE public.scheduled_feedback ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_scheduled_feedback_deliver_at ON public.scheduled_feedback(deliver_at);
 CREATE INDEX IF NOT EXISTS idx_scheduled_feedback_user_id ON public.scheduled_feedback(user_id);
+
+-- --------
+-- SECURITY: Add length constraints to prevent abuse
+-- --------
+ALTER TABLE public.users ADD CONSTRAINT IF NOT EXISTS username_length CHECK (length(username) >= 3 AND length(username) <= 30);
+ALTER TABLE public.users ADD CONSTRAINT IF NOT EXISTS email_length CHECK (length(email) <= 254);
+ALTER TABLE public.users ADD CONSTRAINT IF NOT EXISTS custom_prompt_length CHECK (length(custom_prompt) <= 1000);
+ALTER TABLE public.users ADD CONSTRAINT IF NOT EXISTS feedback_note_length CHECK (length(feedback_note) <= 200);
+ALTER TABLE public.users ADD CONSTRAINT IF NOT EXISTS openrouter_api_key_length CHECK (length(openrouter_api_key) <= 500);
+ALTER TABLE public.users ADD CONSTRAINT IF NOT EXISTS public_key_length CHECK (length(public_key) <= 2000);
+ALTER TABLE public.users ADD CONSTRAINT IF NOT EXISTS salt_length CHECK (length(salt) <= 100);
+
+ALTER TABLE public.feedback ADD CONSTRAINT IF NOT EXISTS encrypted_content_length CHECK (length(encrypted_content) <= 20000);
+ALTER TABLE public.feedback ADD CONSTRAINT IF NOT EXISTS encrypted_reasoning_length CHECK (length(encrypted_reasoning) <= 20000);
+
+ALTER TABLE public.scheduled_feedback ADD CONSTRAINT IF NOT EXISTS sched_encrypted_content_length CHECK (length(encrypted_content) <= 20000);
+ALTER TABLE public.scheduled_feedback ADD CONSTRAINT IF NOT EXISTS sched_encrypted_reasoning_length CHECK (length(encrypted_reasoning) <= 20000);
+
+ALTER TABLE public.feedback_links ADD CONSTRAINT IF NOT EXISTS share_token_length CHECK (length(share_token) >= 3 AND length(share_token) <= 100);

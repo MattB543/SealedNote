@@ -118,16 +118,16 @@ export default function Unlock() {
   return (
     <div className="min-h-full flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-lg shadow p-6">
-        <h1 className="text-2xl font-bold mb-4">Unlock</h1>
+        <h1 className="text-2xl font-bold mb-4">Decrypt your inbox</h1>
         <p className="text-md text-gray-600 mb-4">
-          Unlock your inbox by entering your encryption password. Or{" "}
-          <button
-            type="button"
+          Enter your encryption password below. Or{" "}
+          <p
+            role="button"
             className="button-link"
             onClick={() => setMode("key")}
           >
             use your private key directly
-          </button>
+          </p>
           .
         </p>
 
@@ -150,7 +150,7 @@ export default function Unlock() {
               disabled={loading}
               className="w-full py-2 rounded disabled:opacity-50"
             >
-              {loading ? "Unlocking..." : "Unlock Inbox"}
+              {loading ? "Decrypting..." : "Decrypt Inbox"}
             </button>
           </div>
         ) : (
@@ -166,13 +166,13 @@ export default function Unlock() {
               disabled={loading}
               className="w-full py-2 rounded disabled:opacity-50"
             >
-              {loading ? "Unlocking..." : "Unlock"}
+              {loading ? "Decrypting..." : "Decrypt"}
             </button>
             {canUsePassword && (
               <button
                 type="button"
                 onClick={() => setMode("password")}
-                className="button-link"
+                className="button-link !text-[#424133]"
               >
                 Use password instead
               </button>

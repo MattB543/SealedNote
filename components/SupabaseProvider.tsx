@@ -24,10 +24,10 @@ export default function SupabaseProvider({
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, _session) => {
-      // Refresh on any meaningful auth change
+      // Refresh on any meaningful auth change except SIGNED_OUT
+      // SIGNED_OUT is handled by the sign out function with a full page reload
       if (
         event === 'SIGNED_IN' ||
-        event === 'SIGNED_OUT' ||
         event === 'TOKEN_REFRESHED' ||
         event === 'USER_UPDATED'
       ) {

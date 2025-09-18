@@ -33,6 +33,7 @@ export default function Settings() {
   const [copiedKey, setCopiedKey] = useState(false);
   const [openRouterKey, setOpenRouterKey] = useState("");
   const [hasOpenRouterKey, setHasOpenRouterKey] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   const loadUserData = useCallback(async () => {
     try {
@@ -241,8 +242,31 @@ export default function Settings() {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/");
+    if (signingOut) return; // Prevent double-clicks
+    
+    try {
+      setSigningOut(true);
+      
+      // Clear local storage first
+      localStorage.removeItem("ff_encrypted_private_key");
+      localStorage.removeItem("ff_salt");
+      localStorage.removeItem("ff_private_key");
+      
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("Sign out error:", error);
+      }
+      
+      // Use window.location for a full page reload to clear all state
+      // This ensures the server component properly checks auth state
+      window.location.href = "/";
+    } catch (err) {
+      console.error("Error during sign out:", err);
+      // Force redirect even on error
+      window.location.href = "/";
+    }
   };
 
   if (!user) {
@@ -354,6 +378,7 @@ export default function Settings() {
             <textarea
               value={customPrompt}
               onChange={(e) => setCustomPrompt(e.target.value)}
+              maxLength={1000}
               className="w-full h-24 px-3 py-2 border rounded-lg resize-none"
               placeholder="Enter your custom filtering instructions..."
             />
@@ -512,6 +537,7 @@ export default function Settings() {
           <div className="flex gap-2">
             <input
               type="password"
+              maxLength={200}
               value={
                 hasOpenRouterKey && openRouterKey.endsWith("…")
                   ? ""
@@ -602,9 +628,10 @@ export default function Settings() {
             </div>
             <button
               onClick={handleSignOut}
-              className="px-4 py-2 text-base rounded"
+              disabled={signingOut}
+              className="px-4 py-2 text-base rounded disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign Out
+              {signingOut ? "Signing out..." : "Sign Out"}
             </button>
           </div>
         </div>

@@ -22,6 +22,9 @@ export default function SubmitFeedback() {
   // Coach + scheduling state
   const [coach, setCoach] = useState<any | null>(null);
   const [showCoach, setShowCoach] = useState(false);
+  const [originalCoachContent, setOriginalCoachContent] = useState<string>("");
+  const [savedUserContent, setSavedUserContent] = useState<string>("");
+  const [isRewriteApplied, setIsRewriteApplied] = useState(false);
   const [sendMode, setSendMode] = useState<"now" | "schedule">("now");
   // Delay range selection when scheduling
   const [delayRange, setDelayRange] = useState<
@@ -73,8 +76,8 @@ export default function SubmitFeedback() {
         throw new Error("Feedback must be 1000 characters or less");
       }
 
-      // Preflight AI coach only if reviewer is enabled
-      if (reviewerEnabled) {
+      // Preflight AI coach only if reviewer is enabled and not already coaching
+      if (reviewerEnabled && !showCoach) {
         {
           try {
             const res = await fetch("/api/feedback/analyze", {
@@ -92,6 +95,7 @@ export default function SubmitFeedback() {
               if (data?.disabled !== true && (risk !== "low" || needs)) {
                 setCoach(data);
                 setShowCoach(true);
+                setOriginalCoachContent(content.trim());
                 setSubmitting(false);
                 return;
               }
@@ -152,12 +156,15 @@ export default function SubmitFeedback() {
     }
   }
 
-  // Simple deterministic hints (no LLM, browser-only)
-
   function CoachPanel() {
     if (!showCoach || !coach) return null;
     const risk = coach?.anonymity?.risk_level;
     const risky = risk === "medium" || risk === "high";
+
+    // Determine suggested rewrite to show
+    const suggestedRewrite =
+      risky && coach.anon_rewrite ? coach.anon_rewrite : coach.quality_rewrite;
+
     return (
       <div className="mb-4 p-4 border rounded bg-white">
         <h3 className="text-lg font-semibold mb-2">
@@ -187,36 +194,31 @@ export default function SubmitFeedback() {
             </ul>
           </>
         )}
-        <div className="space-y-2">
-          {coach.anon_rewrite && (
+        {suggestedRewrite && (
+          <div className="mt-3">
+            <div className="text-sm font-semibold mb-2">Suggested rewrite:</div>
+            <div className="p-3 bg-gray-50 rounded border border-gray-200 text-sm">
+              {suggestedRewrite}
+            </div>
             <button
               onClick={() => {
-                setContent(coach.anon_rewrite);
+                if (isRewriteApplied) {
+                  // Undo: restore the user's original content
+                  setContent(savedUserContent);
+                  setIsRewriteApplied(false);
+                } else {
+                  // Apply: save current content and use rewrite
+                  setSavedUserContent(content);
+                  setContent(suggestedRewrite);
+                  setIsRewriteApplied(true);
+                }
               }}
-              className="w-full py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
+              className="w-full mt-2 py-2 bg-green-600 text-white rounded hover:bg-green-700"
             >
-              Apply anonymized rewrite
+              {isRewriteApplied ? "Undo rewrite" : "Use this rewrite"}
             </button>
-          )}
-          {coach.quality_rewrite && (
-            <button
-              onClick={() => {
-                setContent(coach.quality_rewrite);
-              }}
-              className="w-full py-2 rounded"
-            >
-              Apply quality rewrite
-            </button>
-          )}
-          <button
-            onClick={() => {
-              finalizeSend(content.trim());
-            }}
-            className="w-full py-2 bg-gray-800 text-white rounded hover:bg-black"
-          >
-            Send as-is
-          </button>
-        </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -299,13 +301,16 @@ export default function SubmitFeedback() {
           </div>
         )}
 
-        {/* Coaching panel (inline, above input) */}
-        <CoachPanel />
-
         <div className="mb-4">
           <textarea
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => {
+              setContent(e.target.value);
+              // If user manually edits, clear the rewrite applied state
+              if (isRewriteApplied) {
+                setIsRewriteApplied(false);
+              }
+            }}
             placeholder="Write your message here..."
             className="w-full h-48 px-4 py-3 border border-gray-300 rounded-lg resize-none"
             maxLength={1000}
@@ -316,6 +321,8 @@ export default function SubmitFeedback() {
             </p>
           )}
         </div>
+
+        <CoachPanel />
 
         {/* Scheduling panel */}
         <div className="mb-3">
@@ -393,15 +400,15 @@ export default function SubmitFeedback() {
         </div>
         <div className="mb-6 space-y-2 text-sm text-gray-600 flex gap-2 justify-between items-baseline">
           <p className="flex items-center gap-2">
-            <span className="text-green-500">✓</span>
+            <span>✓</span>
             Anonymous
           </p>
           <p className="flex items-center gap-2">
-            <span className="text-green-500">✓</span>
+            <span>✓</span>
             Encrypted
           </p>
           <p className="flex items-center gap-2">
-            <span className="text-green-500">✓</span>
+            <span>✓</span>
             Only readable by recipient
           </p>
         </div>
@@ -411,7 +418,12 @@ export default function SubmitFeedback() {
           disabled={submitting || !content.trim()}
           className="w-full py-3 font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {submitting ? "Sending..." : "Send Feedback"}
+          {submitting
+            ? "Encrypting and sending..."
+            : showCoach &&
+              Math.abs(content.length - originalCoachContent.length) <= 1
+            ? "Send as-is"
+            : "Send Feedback"}
         </button>
       </div>
     </div>

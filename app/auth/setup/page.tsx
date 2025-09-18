@@ -60,6 +60,22 @@ export default function Setup() {
         );
       }
 
+      if (username.length < 3 || username.length > 30) {
+        throw new Error("Username must be between 3 and 30 characters");
+      }
+
+      if (customPrompt && customPrompt.length > 1000) {
+        throw new Error("Custom prompt must be 1000 characters or less");
+      }
+
+      if (feedbackNote && feedbackNote.length > 200) {
+        throw new Error("Feedback note must be 200 characters or less");
+      }
+
+      if (openRouterKey && openRouterKey.length > 200) {
+        throw new Error("API key is too long");
+      }
+
       // Generate salt and RSA key pair
       const salt = generateSalt();
       const { publicKey, privateKey: rawPrivateKey } =
@@ -135,6 +151,10 @@ export default function Setup() {
         );
         return;
       }
+      if (storagePassword.length > 128) {
+        alert("Password must be 128 characters or less");
+        return;
+      }
       const encrypted = await browserCrypto.encryptPrivateKeyWithPassword(
         privateKeyToDisplay,
         storagePassword,
@@ -189,6 +209,8 @@ export default function Setup() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value.toLowerCase())}
                     placeholder="john-doe"
+                    maxLength={30}
+                    minLength={3}
                     className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
@@ -261,6 +283,7 @@ export default function Setup() {
                       <textarea
                         value={customPrompt}
                         onChange={(e) => setCustomPrompt(e.target.value)}
+                        maxLength={1000}
                         className="w-full text-sm h-18 px-3 py-2 border rounded-lg resize-none"
                         placeholder="e.g., Filter out only serious insults, threats, and purely hurtful comments with zero constructive value"
                       />

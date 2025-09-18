@@ -322,6 +322,9 @@ async function classifyWithOpenRouter(
           ],
           max_tokens: 5000,
           response_format: { type: "json_object" },
+          reasoning: {
+            effort: "low",
+          },
         }),
       }
     );
