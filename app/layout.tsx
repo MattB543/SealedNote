@@ -23,7 +23,7 @@ const crimson = Crimson_Text({
 export const metadata: Metadata = {
   title: "SealedNote - Anonymous feedback, filtered and encrypted",
   description:
-    "Receive anonymous feedback that is filtered for meanness and encrypted for your privacy",
+    "Receive anonymous feedback that is filtered by AI and encrypted for your privacy",
 };
 
 export default async function RootLayout({
@@ -46,11 +46,7 @@ export default async function RootLayout({
         className={`${inter.variable} ${meri.variable} ${crimson.variable}`}
       >
         {/* Pass nonce to Next.js Script components */}
-        <Script
-          id="nonce-provider"
-          strategy="afterInteractive"
-          nonce={nonce}
-        />
+        <Script id="nonce-provider" strategy="afterInteractive" nonce={nonce} />
         <SupabaseProvider session={session}>
           {/* App shell: header + main + footer without fixed positioning */}
           <div className="min-h-screen flex flex-col">
