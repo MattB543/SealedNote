@@ -3,7 +3,58 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
+  // Generate nonce for CSP
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const isDev = process.env.NODE_ENV !== "production";
+
+  // Set up CSP with nonce
+  const scriptSrc = isDev
+    ? `'self' 'nonce-${nonce}' 'unsafe-eval' 'strict-dynamic'`
+    : `'self' 'nonce-${nonce}' 'strict-dynamic'`;
+
+  const cspHeader = `
+    default-src 'self';
+    script-src ${scriptSrc};
+    style-src 'self' 'nonce-${nonce}' 'unsafe-inline';
+    img-src 'self' data: blob:;
+    font-src 'self' https://fonts.gstatic.com;
+    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://openrouter.ai https://api.openrouter.ai ${isDev ? 'ws: wss:' : ''};
+    frame-ancestors 'none';
+    base-uri 'self';
+    form-action 'self';
+    ${!isDev ? 'upgrade-insecure-requests;' : ''}
+  `.replace(/\s{2,}/g, " ").trim();
+
+  // Create response with nonce header
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-nonce", nonce);
+  
+  const res = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+  
+  // Set CSP and other security headers
+  res.headers.set("Content-Security-Policy", cspHeader);
+  res.headers.set("X-Frame-Options", "DENY");
+  res.headers.set("X-Content-Type-Options", "nosniff");
+  res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.headers.set("Permissions-Policy", "geolocation=(), microphone=(), camera=(), payment=()");
+  
+  if (!isDev) {
+    res.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+  }
+
+  // Set custom headers
+  res.headers.set("X-Commit-SHA", process.env.VERCEL_GIT_COMMIT_SHA || "local");
+  res.headers.set("X-Build-ID", process.env.VERCEL_DEPLOYMENT_ID || "dev");
+  const repo = process.env.VERCEL_GIT_REPO_OWNER && process.env.VERCEL_GIT_REPO_SLUG
+    ? `${process.env.VERCEL_GIT_REPO_OWNER}/${process.env.VERCEL_GIT_REPO_SLUG}`
+    : "unknown";
+  res.headers.set("X-Repo", repo);
+  res.headers.set("X-Branch", process.env.VERCEL_GIT_COMMIT_REF || "unknown");
+
   const supabase = createMiddlewareClient({ req, res })
 
   // Handle magic-link redirect that lands anywhere with ?code=...

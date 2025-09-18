@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { Inter, Merienda, Crimson_Text } from "next/font/google";
 import "./globals.css";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import SupabaseProvider from "@/components/SupabaseProvider";
 import Header from "@/components/Header";
+import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const meri = Merienda({
@@ -36,11 +37,20 @@ export default async function RootLayout({
     data: { session },
   } = await supabase.auth.getSession();
 
+  // Get nonce from headers set by middleware
+  const nonce = headers().get("x-nonce") || "";
+
   return (
     <html lang="en">
       <body
         className={`${inter.variable} ${meri.variable} ${crimson.variable}`}
       >
+        {/* Pass nonce to Next.js Script components */}
+        <Script
+          id="nonce-provider"
+          strategy="afterInteractive"
+          nonce={nonce}
+        />
         <SupabaseProvider session={session}>
           {/* App shell: header + main + footer without fixed positioning */}
           <div className="min-h-screen flex flex-col">

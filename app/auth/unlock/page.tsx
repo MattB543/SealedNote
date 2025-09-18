@@ -120,15 +120,21 @@ export default function Unlock() {
       <div className="w-full max-w-md bg-white rounded-lg shadow p-6">
         <h1 className="text-2xl font-bold mb-4">Decrypt your inbox</h1>
         <p className="text-md text-gray-600 mb-4">
-          Enter your encryption password below. Or{" "}
-          <p
-            role="button"
-            className="button-link"
-            onClick={() => setMode("key")}
-          >
-            use your private key directly
-          </p>
-          .
+          {canUsePassword ? (
+            <>
+              Enter your encryption password below. Or{" "}
+              <span
+                role="button"
+                className="button-link"
+                onClick={() => setMode("key")}
+              >
+                use your private key directly
+              </span>
+              .
+            </>
+          ) : (
+            "Enter your private key below."
+          )}
         </p>
 
         {error && (
