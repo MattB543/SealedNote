@@ -23,6 +23,7 @@ export default function Setup() {
     DEFAULT_FEEDBACK_NOTE
   );
   const [loading, setLoading] = useState(false);
+  const [testDecryptionLoading, setTestDecryptionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Private key modal states
@@ -143,29 +144,38 @@ export default function Setup() {
       return;
     }
 
-    // Save to localStorage if user chose to
-    if (saveToLocalStorage) {
-      if (!storagePassword || storagePassword.length < 8) {
-        alert(
-          "Please enter a password (min 8 chars) to encrypt and save your key"
-        );
-        return;
-      }
-      if (storagePassword.length > 128) {
-        alert("Password must be 128 characters or less");
-        return;
-      }
-      const encrypted = await browserCrypto.encryptPrivateKeyWithPassword(
-        privateKeyToDisplay,
-        storagePassword,
-        userSalt
-      );
-      localStorage.setItem("ff_encrypted_private_key", encrypted);
-      localStorage.setItem("ff_salt", userSalt);
-    }
+    setTestDecryptionLoading(true);
 
-    // Redirect to unlock to immediately decrypt inbox
-    router.push("/auth/unlock");
+    try {
+      // Save to localStorage if user chose to
+      if (saveToLocalStorage) {
+        if (!storagePassword || storagePassword.length < 8) {
+          alert(
+            "Please enter a password (min 8 chars) to encrypt and save your key"
+          );
+          setTestDecryptionLoading(false);
+          return;
+        }
+        if (storagePassword.length > 128) {
+          alert("Password must be 128 characters or less");
+          setTestDecryptionLoading(false);
+          return;
+        }
+        const encrypted = await browserCrypto.encryptPrivateKeyWithPassword(
+          privateKeyToDisplay,
+          storagePassword,
+          userSalt
+        );
+        localStorage.setItem("ff_encrypted_private_key", encrypted);
+        localStorage.setItem("ff_salt", userSalt);
+      }
+
+      // Redirect to unlock to immediately decrypt inbox
+      router.push("/auth/unlock");
+    } catch (error) {
+      console.error("Error during test decryption:", error);
+      setTestDecryptionLoading(false);
+    }
   };
 
   const copyToClipboard = async () => {
@@ -447,10 +457,10 @@ export default function Setup() {
 
             <button
               onClick={handleContinue}
-              disabled={!confirmedSaved}
+              disabled={!confirmedSaved || testDecryptionLoading}
               className="w-full py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              Test Decryption
+              {testDecryptionLoading ? "Testing..." : "Test Decryption"}
             </button>
           </div>
         </div>
