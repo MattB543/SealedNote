@@ -223,27 +223,39 @@ export default function Dashboard() {
   return (
     <div className="p-4 pb-20">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-off-white rounded-lg shadow-sm p-6 mb-6 paper-bg">
-          <div className="flex flex-row items-center justify-between mb-4">
-            <div className="flex items-center gap-3 p-2 px-3 bg-gray-50 rounded-lg">
-              <span className="text-md text-gray-600">{feedbackLink}</span>
+        <div className="bg-off-white rounded-lg shadow-sm p-4 sm:p-6 mb-6 paper-bg">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+            <div className="inline-flex items-center gap-3 p-2 px-3 bg-gray-50 rounded-lg w-fit">
+              <a 
+                href={feedbackLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-md text-gray-600 underline sm:no-underline hover:text-gray-800"
+                onClick={(e) => {
+                  if (window.innerWidth >= 640) {
+                    e.preventDefault();
+                  }
+                }}
+              >
+                {feedbackLink}
+              </a>
               <div className="flex items-center gap-1">
                 <button
                   onClick={copyLink}
-                  className="px-3 py-1 h-[28px] text-sm !bg-gray-100 !text-[#424133] rounded hover:!bg-gray-200"
+                  className="px-2 py-0.5 h-[22px] sm:px-3 sm:py-1 sm:h-[28px] text-sm !bg-gray-100 !text-[#424133] rounded hover:!bg-gray-200"
                 >
                   {copied ? (
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      width="18"
-                      height="18"
+                      width="14"
+                      height="14"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="icon icon-tabler icons-tabler-outline icon-tabler-check"
+                      className="icon icon-tabler icons-tabler-outline icon-tabler-check sm:w-[18px] sm:h-[18px]"
                     >
                       <path stroke="none" d="M0 0h24v24H0z" fill="none" />
                       <path d="M5 12l5 5l10 -10" />
@@ -251,15 +263,15 @@ export default function Dashboard() {
                   ) : (
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      width="18"
-                      height="18"
+                      width="14"
+                      height="14"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="1.8"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="icon icon-tabler icons-tabler-outline icon-tabler-copy"
+                      className="icon icon-tabler icons-tabler-outline icon-tabler-copy sm:w-[18px] sm:h-[18px]"
                     >
                       <path stroke="none" d="M0 0h24v24H0z" fill="none" />
                       <path d="M7 7m0 2.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z" />
@@ -269,7 +281,7 @@ export default function Dashboard() {
                 </button>
                 <button
                   onClick={() => window.open(feedbackLink, "_blank")}
-                  className="px-3 py-1 text-sm h-[28px] !bg-gray-100 !text-[#424133] rounded hover:!bg-gray-200"
+                  className="hidden sm:flex px-3 py-1 text-sm h-[28px] !bg-gray-100 !text-[#424133] rounded hover:!bg-gray-200"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -293,7 +305,7 @@ export default function Dashboard() {
             </div>
             <Link
               href="/settings"
-              className="flex items-center gap-1 px-3 py-1.5 text-md bg-gray-100 text-[#424133] rounded-lg hover:bg-gray-200 h-[44px]"
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-md bg-gray-100 text-[#424133] rounded-lg hover:bg-gray-200 h-[44px] w-fit"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -379,12 +391,18 @@ export default function Dashboard() {
                             </abbr>
                           )}
                           <span className="ml-2 text-sm text-gray-500">
-                            {new Date(item.created_at).toLocaleString(
+                            {new Date(item.created_at).toLocaleDateString(
                               undefined,
                               {
                                 year: "numeric",
                                 month: "short",
                                 day: "numeric",
+                              }
+                            )}
+                            <span className="text-gray-400 mx-1">•</span>
+                            {new Date(item.created_at).toLocaleTimeString(
+                              undefined,
+                              {
                                 hour: "2-digit",
                                 minute: "2-digit",
                               }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 function GitHubIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
@@ -25,36 +26,43 @@ export default function Header() {
   const repoUrl = `https://github.com/${repoFull}`;
 
   const commitSha = process.env.VERCEL_GIT_COMMIT_SHA || "local";
-  const shortSha = commitSha.slice(0, 7);
+  const shortSha = commitSha.slice(0, 5);
   const commitUrl =
     commitSha && commitSha !== "local"
       ? `${repoUrl}/commit/${commitSha}`
       : undefined;
 
   return (
-    <header className="bg-off-white border-b border-gray-200 sticky top-0 z-30 px-4">
-      <div className="max-w-4xl mx-auto h-14 flex flex-wrap items-center justify-between gap-2">
+    <header className="bg-off-white border-b border-gray-200 sm:sticky top-0 z-30 px-4">
+      <div className="max-w-4xl mx-auto min-h-[3.5rem] py-3 sm:py-2 flex flex-wrap items-center justify-between gap-3 sm:gap-2">
         <Link
           href="/"
           className="text-xl crimson-text-semibold text-[#3b3a2c] hover:opacity-80"
         >
-          SealedNote
+          <Image
+            src="/sn_header.png"
+            alt="SealedNote"
+            width={140}
+            height={140}
+            className="h-auto"
+            priority
+          />
         </Link>
-        <div className="flex items-center gap-2 text-sm text-gray-700">
+        <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-700">
           <a
             href={repoUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-off-white px-3 py-1 text-gray-800 hover:bg-gray-50"
+            className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-off-white px-2.5 sm:px-3 py-1 text-gray-800 hover:bg-gray-50"
             aria-label={`Open source on GitHub: ${repoFull}`}
           >
-            <GitHubIcon className="h-4 w-4" />
-            <span className="font-medium">Open Source</span>
+            <GitHubIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="font-medium whitespace-nowrap">Open Source</span>
           </a>
 
           <Link
             href="/vercel-proof"
-            className="inline-flex items-center rounded-full border border-gray-300 bg-off-white px-3 py-1 font-medium text-gray-800 hover:bg-gray-50"
+            className="inline-flex items-center rounded-full border border-gray-300 bg-off-white px-2.5 sm:px-3 py-1 font-medium text-gray-800 hover:bg-gray-50 whitespace-nowrap"
           >
             ▲ Build Proof
           </Link>
@@ -63,18 +71,20 @@ export default function Header() {
               href={commitUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-full border border-gray-300 bg-off-white px-3 py-1 text-gray-800"
+              className="rounded-full border border-gray-300 bg-off-white px-2.5 sm:px-3 py-1 text-gray-800"
               aria-label={`Live commit ${shortSha}`}
               title={commitSha}
             >
-              <span className="font-medium">Live Commit:</span>{" "}
+              <span className="font-medium hidden sm:inline">Live Commit:</span>
+              <span className="font-medium sm:hidden">Commit:</span>{" "}
               <span className="font-mono underline decoration-dotted underline-offset-4">
                 {shortSha}
               </span>
             </a>
           ) : (
-            <span className="rounded-full border border-gray-300 bg-off-white px-3 py-1 text-gray-800">
-              <span className="font-medium">Live Commit:</span>{" "}
+            <span className="rounded-full border border-gray-300 bg-off-white px-2.5 sm:px-3 py-1 text-gray-800">
+              <span className="font-medium hidden sm:inline">Live Commit:</span>
+              <span className="font-medium sm:hidden">Commit:</span>{" "}
               <span className="font-mono" title={commitSha}>
                 {shortSha}
               </span>

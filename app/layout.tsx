@@ -58,7 +58,11 @@ export default async function RootLayout({
             <main className="flex-1 min-h-0 mt-8">{children}</main>
             <footer className="mt-auto">
               <div className="max-w-4xl mx-auto px-4 py-3 text-center text-sm text-gray-700">
-                🔒 Open-source & encrypted | Terms of Service | Privacy Policy
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center sm:gap-2">
+                  <div>🔒 Open-source & encrypted</div>
+                  <div className="hidden sm:inline">|</div>
+                  <div>Terms of Service | Privacy Policy</div>
+                </div>
               </div>
             </footer>
           </div>

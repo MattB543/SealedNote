@@ -20,7 +20,7 @@ export function SignInForm() {
 
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
       console.log("Sign in attempt - Redirect URL:", `${appUrl}/auth/callback`);
-      
+
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
@@ -40,38 +40,44 @@ export function SignInForm() {
     }
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !loading) {
+      handleSubmit();
+    }
+  };
+
   return (
     <div className="w-full max-w-sm mx-auto">
       {error && (
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
       )}
-      {message && (
-        <div className="mb-4 p-3 bg-gray-100 text-[#424133] rounded">
-          {message}
+      {message ? (
+        <div className="h-[108px] p-6 bg-gray-100 text-[#424133] rounded-lg flex flex-col justify-center items-center">
+          <div className="text-lg font-medium">{message}</div>
+          <p className="mt-4 text-center text-sm text-gray-600">
+            By continuing, you agree to our terms and privacy policy
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2 min-[480px]:space-y-2.5 sm:space-y-3">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="you@example.com"
+            className="w-full px-3 h-8 min-[480px]:h-11 sm:h-12 border rounded-lg text-sm min-[480px]:text-base"
+            autoComplete="email"
+          />
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="w-full h-8 min-[480px]:h-11 sm:h-12 rounded-lg disabled:opacity-50 text-sm min-[480px]:text-base"
+          >
+            {loading ? "Sending..." : "Log in / Sign up"}
+          </button>
         </div>
       )}
-
-      <div className="space-y-3">
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          className="w-full px-3 py-2 border rounded-lg"
-          autoComplete="email"
-        />
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          className="w-full py-3 rounded-lg disabled:opacity-50"
-        >
-          {loading ? "Sending..." : "Log in or Sign up"}
-        </button>
-      </div>
-
-      <p className="mt-4 text-center text-sm text-gray-400">
-        By continuing, you agree to our terms and privacy policy
-      </p>
     </div>
   );
 }

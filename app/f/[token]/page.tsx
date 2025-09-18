@@ -226,7 +226,7 @@ export default function SubmitFeedback() {
   if (submitted) {
     return (
       <div className="min-h-full flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-off-white rounded-lg shadow-lg p-8 text-center">
+        <div className="max-w-md w-full bg-off-white rounded-lg shadow-lg p-6 sm:p-8 text-center">
           <div className="mb-4">
             <div className="w-16 h-16 bg-[#42413315] rounded-full flex items-center justify-center mx-auto">
               <svg
@@ -280,7 +280,7 @@ export default function SubmitFeedback() {
 
   return (
     <div className="min-h-full flex items-center justify-center p-4">
-      <div className="max-w-lg w-full bg-off-white rounded-lg shadow-lg p-8">
+      <div className="max-w-lg w-full bg-off-white rounded-lg shadow-lg p-6 sm:p-8">
         <h2 className="text-2xl font-bold mb-4">
           {username
             ? `Send anonymous feedback to ${username}`
@@ -398,7 +398,7 @@ export default function SubmitFeedback() {
             </div>
           )}
         </div>
-        <div className="mb-6 space-y-2 text-sm text-gray-600 flex gap-2 justify-between items-baseline">
+        <div className="mb-6 text-sm text-gray-600 flex flex-col sm:flex-row gap-2 sm:justify-between sm:items-baseline">
           <p className="flex items-center gap-2">
             <span>✓</span>
             Anonymous
@@ -419,7 +419,7 @@ export default function SubmitFeedback() {
           className="w-full py-3 font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting
-            ? "Encrypting and sending..."
+            ? "Encrypting and verifying..."
             : showCoach &&
               Math.abs(content.length - originalCoachContent.length) <= 1
             ? "Send as-is"
