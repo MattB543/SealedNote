@@ -62,6 +62,8 @@ export default function Header() {
 
           <Link
             href="/vercel-proof"
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center rounded-full border border-gray-300 bg-off-white px-2.5 sm:px-3 py-1 font-medium text-gray-800 hover:bg-gray-50 whitespace-nowrap"
           >
             ▲ Build Proof
