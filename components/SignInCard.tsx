@@ -78,7 +78,7 @@ export function SignInForm() {
 
 export default function SignInCard() {
   return (
-    <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+    <div className="max-w-md w-full bg-off-white rounded-lg shadow-lg p-8">
       <SignInForm />
     </div>
   );

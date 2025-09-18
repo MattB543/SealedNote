@@ -105,7 +105,7 @@ export default function Unlock() {
   if (initializing) {
     return (
       <div className="min-h-full flex items-center justify-center p-4">
-        <div className="w-full min-h-[254px] max-w-md bg-white rounded-lg shadow p-6">
+        <div className="w-full min-h-[254px] max-w-md bg-off-white rounded-lg shadow p-6">
           <h1 className="text-2xl font-bold mb-2">Unlock</h1>
           <p className="text-sm text-gray-600">
             Preparing your unlock options…
@@ -117,7 +117,7 @@ export default function Unlock() {
 
   return (
     <div className="min-h-full flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-lg shadow p-6">
+      <div className="w-full max-w-md bg-off-white rounded-lg shadow p-6">
         <h1 className="text-2xl font-bold mb-4">Decrypt your inbox</h1>
         <p className="text-md text-gray-600 mb-4">
           {canUsePassword ? (

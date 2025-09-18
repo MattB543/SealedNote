@@ -10,7 +10,7 @@ export default function HowItWorks() {
           </Link>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-8">
+        <div className="bg-off-white rounded-lg shadow-sm p-8">
           <h1 className="text-3xl font-bold mb-8">How SealedNote Works</h1>
 
           {/* Overview */}

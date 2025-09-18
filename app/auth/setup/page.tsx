@@ -179,7 +179,7 @@ export default function Setup() {
       {/* Step Wizard Modal */}
       {!showPrivateKeyModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-40">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div className="bg-off-white rounded-lg shadow-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold mb-1">
               Welcome! Set up your account
             </h2>
@@ -368,7 +368,7 @@ export default function Setup() {
       {/* Private Key Modal */}
       {showPrivateKeyModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-off-white rounded-lg p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold mb-4 text-red-600">
               Save Your Private Encryption Key
             </h3>
@@ -391,7 +391,7 @@ export default function Setup() {
               <textarea
                 readOnly
                 value={privateKeyToDisplay}
-                className="w-full h-24 mt-1 p-2 text-[11px] font-mono bg-white border rounded"
+                className="w-full h-24 mt-1 p-2 text-[11px] font-mono bg-off-white border rounded"
                 onClick={(e) => e.currentTarget.select()}
               />
               <button

@@ -223,7 +223,7 @@ export default function Dashboard() {
   return (
     <div className="p-4 pb-20">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6 paper-bg">
+        <div className="bg-off-white rounded-lg shadow-sm p-6 mb-6 paper-bg">
           <div className="flex flex-row items-center justify-between mb-4">
             <div className="flex items-center gap-3 p-2 px-3 bg-gray-50 rounded-lg">
               <span className="text-md text-gray-600">{feedbackLink}</span>

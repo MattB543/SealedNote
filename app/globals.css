@@ -4,7 +4,8 @@
 
 body {
   /* background-image: url("/paper_bg_v2.jpg"); */
-  background-color: #faf9f5;
+  /* background-color: #faf9f5; */
+  background-color: var(--brand-yellow);
   background-repeat: repeat;
   background-size: 100%;
   font-family: var(--font-crimson), var(--font-inter), serif;
@@ -29,9 +30,10 @@ h2 {
 }
 
 :root {
-  --ff-surface-dark: #646148;
-  --ff-surface-dark-hover: #4f4c36;
-  --ff-surface-dark-disabled: #8d896e;
+  --brand-yellow: #fffaef;
+  --ff-surface-dark: #646f4b;
+  --ff-surface-dark-hover: #4d563a;
+  --ff-surface-dark-disabled: rgb(141, 137, 110);
   --ff-surface-dark-text: #f7f5eb;
   --ff-surface-dark-placeholder: #d5d1bd;
 }

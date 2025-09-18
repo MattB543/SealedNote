@@ -166,7 +166,7 @@ export default function SubmitFeedback() {
       risky && coach.anon_rewrite ? coach.anon_rewrite : coach.quality_rewrite;
 
     return (
-      <div className="mb-4 p-4 border rounded bg-white">
+      <div className="mb-4 p-4 border rounded bg-off-white">
         <h3 className="text-lg font-semibold mb-2">
           Make your feedback stronger
         </h3>
@@ -226,7 +226,7 @@ export default function SubmitFeedback() {
   if (submitted) {
     return (
       <div className="min-h-full flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+        <div className="max-w-md w-full bg-off-white rounded-lg shadow-lg p-8 text-center">
           <div className="mb-4">
             <div className="w-16 h-16 bg-[#42413315] rounded-full flex items-center justify-center mx-auto">
               <svg
@@ -262,7 +262,7 @@ export default function SubmitFeedback() {
               </span>
             ) : (
               <span>
-                Your anonymous feedback has been submitted and encrypted
+                Your anonymous feedback has been encrypted and submitted
                 successfully.
               </span>
             )}
@@ -280,7 +280,7 @@ export default function SubmitFeedback() {
 
   return (
     <div className="min-h-full flex items-center justify-center p-4">
-      <div className="max-w-lg w-full bg-white rounded-lg shadow-lg p-8">
+      <div className="max-w-lg w-full bg-off-white rounded-lg shadow-lg p-8">
         <h2 className="text-2xl font-bold mb-4">
           {username
             ? `Send anonymous feedback to ${username}`

@@ -297,7 +297,7 @@ export default function Settings() {
         )}
 
         {/* Feedback Note for Senders */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-off-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-start justify-between gap-4 mb-3">
             <div>
               <h2 className="text-lg font-semibold">Feedback Note</h2>
@@ -328,7 +328,7 @@ export default function Settings() {
         </div>
 
         {/* Custom Filter Instructions */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-off-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-start justify-between gap-4 mb-3">
             <div>
               <h2 className="text-lg font-semibold">
@@ -396,7 +396,7 @@ export default function Settings() {
         </div>
 
         {/* AI Reviewer Toggle */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-off-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-start justify-between gap-4 mb-2">
             <div>
               <h2 className="text-lg font-semibold">AI Reviewer (Coach)</h2>
@@ -435,7 +435,7 @@ export default function Settings() {
 
         {/* Auto-delete toggle */}
         <div
-          className={`bg-white rounded-lg shadow-sm p-6 mb-6 ${
+          className={`bg-off-white rounded-lg shadow-sm p-6 mb-6 ${
             !user.ai_filter_enabled ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
@@ -484,7 +484,7 @@ export default function Settings() {
         </div>
 
         {/* Feedback Link */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-off-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-start justify-between gap-4 mb-3">
             <div>
               <h2 className="text-lg font-semibold">Feedback Link</h2>
@@ -511,7 +511,7 @@ export default function Settings() {
         </div>
 
         {/* OpenRouter Key */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6 flex flex-col gap-2">
+        <div className="bg-off-white rounded-lg shadow-sm p-6 mb-6 flex flex-col gap-2">
           <div>
             <h2 className="text-lg font-semibold">OpenRouter API Key</h2>
             <p className="text-sm text-gray-600">
@@ -523,7 +523,7 @@ export default function Settings() {
             <div className="mb-3 p-3 bg-green-50 rounded">
               <p className="text-sm text-green-800">
                 Using personal key:{" "}
-                <code className="bg-white px-1 py-0.5 rounded">
+                <code className="bg-off-white px-1 py-0.5 rounded">
                   {openRouterKey}
                 </code>
               </p>
@@ -575,7 +575,7 @@ export default function Settings() {
         </div>
 
         {/* Private Key Management */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-off-white rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-lg font-semibold mb-4">Private Key Management</h2>
 
           {hasLocalKey ? (
@@ -618,7 +618,7 @@ export default function Settings() {
         </div>
 
         {/* Account */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-off-white rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between gap-3 mb-3">
             <div>
               <h2 className="text-lg font-semibold">Account</h2>
@@ -640,7 +640,7 @@ export default function Settings() {
       {/* Export Private Key Modal */}
       {showExportModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-off-white rounded-lg p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold mb-4">Export Private Key</h3>
 
             {!exportedKey ? (
@@ -698,7 +698,7 @@ export default function Settings() {
                   <textarea
                     readOnly
                     value={exportedKey}
-                    className="w-full h-24 mt-1 p-2 text-sm font-mono bg-white border rounded"
+                    className="w-full h-24 mt-1 p-2 text-sm font-mono bg-off-white border rounded"
                     onClick={(e) => e.currentTarget.select()}
                   />
                   <button

@@ -33,7 +33,7 @@ export default async function Home() {
   return (
     <main className="min-h-full px-6 py-12">
       <div className="mx-auto max-w-2xl">
-        <div className="relative bg-white rounded-lg shadow-lg p-8">
+        <div className="relative bg-off-white rounded-lg shadow-lg p-8">
           <Image
             src="/sn_wax_seal.png"
             alt="Wax seal"

@@ -32,7 +32,7 @@ export default function Header() {
       : undefined;
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-30 px-4">
+    <header className="bg-off-white border-b border-gray-200 sticky top-0 z-30 px-4">
       <div className="max-w-4xl mx-auto h-14 flex flex-wrap items-center justify-between gap-2">
         <Link
           href="/"
@@ -45,7 +45,7 @@ export default function Header() {
             href={repoUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-3 py-1 text-gray-800 hover:bg-gray-50"
+            className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-off-white px-3 py-1 text-gray-800 hover:bg-gray-50"
             aria-label={`Open source on GitHub: ${repoFull}`}
           >
             <GitHubIcon className="h-4 w-4" />
@@ -54,7 +54,7 @@ export default function Header() {
 
           <Link
             href="/vercel-proof"
-            className="inline-flex items-center rounded-full border border-gray-300 bg-white px-3 py-1 font-medium text-gray-800 hover:bg-gray-50"
+            className="inline-flex items-center rounded-full border border-gray-300 bg-off-white px-3 py-1 font-medium text-gray-800 hover:bg-gray-50"
           >
             ▲ Build Proof
           </Link>
@@ -63,7 +63,7 @@ export default function Header() {
               href={commitUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-full border border-gray-300 bg-white px-3 py-1 text-gray-800"
+              className="rounded-full border border-gray-300 bg-off-white px-3 py-1 text-gray-800"
               aria-label={`Live commit ${shortSha}`}
               title={commitSha}
             >
@@ -73,7 +73,7 @@ export default function Header() {
               </span>
             </a>
           ) : (
-            <span className="rounded-full border border-gray-300 bg-white px-3 py-1 text-gray-800">
+            <span className="rounded-full border border-gray-300 bg-off-white px-3 py-1 text-gray-800">
               <span className="font-medium">Live Commit:</span>{" "}
               <span className="font-mono" title={commitSha}>
                 {shortSha}

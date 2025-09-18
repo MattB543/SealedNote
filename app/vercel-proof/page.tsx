@@ -19,7 +19,7 @@ export default function VercelProofPage() {
         independently confirm the running code maps to a public Git commit.
       </p>
 
-      <section className="mt-6 rounded-lg border border-gray-200 bg-white p-4">
+      <section className="mt-6 rounded-lg border border-gray-200 bg-off-white p-4">
         <h2 className="text-lg font-medium text-gray-900">
           Option A: Public build fingerprint
         </h2>
@@ -48,7 +48,7 @@ export default function VercelProofPage() {
         </div>
       </section>
 
-      <section className="mt-6 rounded-lg border border-gray-200 bg-white p-4">
+      <section className="mt-6 rounded-lg border border-gray-200 bg-off-white p-4">
         <h2 className="text-lg font-medium text-gray-900">
           Option B: Ask Vercel directly
         </h2>
