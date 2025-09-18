@@ -226,7 +226,7 @@ export default function Dashboard() {
         <div className="bg-off-white rounded-lg shadow-sm p-4 sm:p-6 mb-6 paper-bg">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
             <div className="inline-flex items-center gap-3 p-2 px-3 bg-gray-50 rounded-lg w-fit">
-              <a 
+              <a
                 href={feedbackLink}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -367,11 +367,7 @@ export default function Dashboard() {
             <div className="space-y-4">
               {activeTab === "inbox" && (
                 <>
-                  {inboxFeedback.length === 0 ? (
-                    <p className="text-gray-500 text-center py-8">
-                      No feedback in your inbox yet
-                    </p>
-                  ) : (
+                  {inboxFeedback.length > 0 &&
                     inboxFeedback.map((item) => (
                       <div
                         key={item.id}
@@ -420,8 +416,7 @@ export default function Dashboard() {
                           </button>
                         )}
                       </div>
-                    ))
-                  )}
+                    ))}
                 </>
               )}
 
