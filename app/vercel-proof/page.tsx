@@ -35,7 +35,8 @@ export default function VercelProofPage() {
               {deploymentUrl ? (
                 <>
                   <p className="mt-3 text-gray-700 leading-relaxed">
-                    This app is deployed at the following Vercel URL:
+                    This app's currently deployed version is hosted at the
+                    following Vercel URL:
                   </p>
 
                   <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -97,20 +98,8 @@ export default function VercelProofPage() {
                     <pre className="text-xs leading-relaxed">
                       {`x-vercel-deployment-url: ${deploymentUrl}
 x-vercel-git-commit-sha: ${commit}
-x-vercel-git-commit-author-login: ${owner}
-x-vercel-git-commit-author-name: ${owner}
 x-vercel-git-repo-owner: ${owner}
 x-vercel-git-repo-slug: ${slug}`}
-                    </pre>
-                  </div>
-
-                  <p className="mt-4 text-gray-700 leading-relaxed">
-                    Alternatively, you can use curl or any HTTP client to check:
-                  </p>
-
-                  <div className="mt-3 p-4 bg-gray-900 text-gray-100 rounded-lg overflow-x-auto">
-                    <pre className="text-xs">
-                      {`curl -I https://${deploymentUrl}`}
                     </pre>
                   </div>
 
@@ -139,8 +128,8 @@ x-vercel-git-repo-slug: ${slug}`}
                     <p className="text-sm text-green-800">
                       ✅ <strong>Trust Note:</strong> These headers are set by
                       Vercel's infrastructure and cannot be modified by the
-                      application code. They provide a cryptographic proof of
-                      the exact code running in this deployment.
+                      application code. They provide proof the code shown on
+                      GitHub is the code running in this deployment.
                     </p>
                   </div>
                 </>
