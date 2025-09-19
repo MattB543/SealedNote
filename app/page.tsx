@@ -41,7 +41,7 @@ export default async function Home() {
           </div>
         </div>
       </div>
-      <div className="mt-12 space-y-0.5 text-lg text-gray-700 flex flex-col items-center">
+      <div className="mt-12 space-y-0.5 text-lg text-gray-700 flex flex-col items-center text-center px-2">
         <h2 className="text-xl font-semibold">Why SealedNote?</h2>
         <Feature text="Free, open source, & end-to-end encrypted" />
         <Feature text="Use your own AI with an OpenRouter API key" />

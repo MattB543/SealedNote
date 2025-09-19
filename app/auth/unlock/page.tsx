@@ -115,76 +115,90 @@ export default function Unlock() {
     );
   }
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push("/auth/signin");
+  };
+
   return (
     <div className="min-h-full flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-off-white rounded-lg shadow p-6">
-        <h1 className="text-2xl font-bold mb-4">Decrypt your inbox</h1>
-        <p className="text-md text-gray-600 mb-4">
-          {canUsePassword ? (
-            <>
-              Enter your encryption password below. Or{" "}
-              <span
-                role="button"
-                className="button-link"
-                onClick={() => setMode("key")}
-              >
-                use your private key directly
-              </span>
-              .
-            </>
-          ) : (
-            "Enter your private key below."
-          )}
-        </p>
-
-        {error && (
-          <div className="mb-3 p-3 bg-red-100 text-red-700 rounded">
-            {error}
-          </div>
-        )}
-        {mode === "password" && canUsePassword ? (
-          <div className="space-y-3">
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Your encryption password"
-              className="w-full px-3 py-2 border rounded-lg"
-            />
-            <button
-              onClick={unlockWithPassword}
-              disabled={loading}
-              className="w-full py-2 rounded disabled:opacity-50"
-            >
-              {loading ? "Decrypting..." : "Decrypt Inbox"}
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <textarea
-              value={privateKeyInput}
-              onChange={(e) => setPrivateKeyInput(e.target.value)}
-              placeholder={`-----BEGIN PRIVATE KEY-----\n...paste your private key here...\n-----END PRIVATE KEY-----`}
-              className="w-full h-28 p-2 text-sm font-mono border rounded-lg"
-            />
-            <button
-              onClick={unlockWithKey}
-              disabled={loading}
-              className="w-full py-2 rounded disabled:opacity-50"
-            >
-              {loading ? "Decrypting..." : "Decrypt"}
-            </button>
-            {canUsePassword && (
-              <button
-                type="button"
-                onClick={() => setMode("password")}
-                className="button-link !text-[#424133]"
-              >
-                Use password instead
-              </button>
+      <div className="flex flex-col items-center w-full max-w-md">
+        <div className="w-full bg-off-white rounded-lg shadow p-6">
+          <h1 className="text-2xl font-bold mb-4">Decrypt your inbox</h1>
+          <p className="text-md text-gray-600 mb-4">
+            {canUsePassword ? (
+              <>
+                Enter your encryption password below. Or{" "}
+                <span
+                  role="button"
+                  className="button-link"
+                  onClick={() => setMode("key")}
+                >
+                  use your private key directly
+                </span>
+                .
+              </>
+            ) : (
+              "Enter your private key below."
             )}
-          </div>
-        )}
+          </p>
+
+          {error && (
+            <div className="mb-3 p-3 bg-red-100 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+          {mode === "password" && canUsePassword ? (
+            <div className="space-y-3">
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Your encryption password"
+                className="w-full px-3 py-2 border rounded-lg"
+              />
+              <button
+                onClick={unlockWithPassword}
+                disabled={loading}
+                className="w-full py-2 rounded disabled:opacity-50"
+              >
+                {loading ? "Decrypting..." : "Decrypt Inbox"}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <textarea
+                value={privateKeyInput}
+                onChange={(e) => setPrivateKeyInput(e.target.value)}
+                placeholder={`-----BEGIN PRIVATE KEY-----\n...paste your private key here...\n-----END PRIVATE KEY-----`}
+                className="w-full h-28 p-2 text-sm font-mono border rounded-lg"
+              />
+              <button
+                onClick={unlockWithKey}
+                disabled={loading}
+                className="w-full py-2 rounded disabled:opacity-50"
+              >
+                {loading ? "Decrypting..." : "Decrypt"}
+              </button>
+              {canUsePassword && (
+                <button
+                  type="button"
+                  onClick={() => setMode("password")}
+                  className="button-link !text-[#424133]"
+                >
+                  Use password instead
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+        <span
+          role="button"
+          onClick={handleSignOut}
+          className="button-link mt-4 inline-block text-sm"
+        >
+          Sign out
+        </span>
       </div>
     </div>
   );

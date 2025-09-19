@@ -29,8 +29,6 @@ Click here to go to the dashboard: ${appUrl}/dashboard`;
                 <table role="presentation" style="max-width: 480px; width: 100%; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
                     <tr>
                         <td align="center" style="padding: 40px 30px;">
-                            <img src="https://www.sealednote.com/_next/image?url=%252Fsn_wax_seal.png&w=128&q=75" alt="" style="width: 100px; height: 100px; margin-bottom: 20px;">
-                            
                             <h1 style="color: #424133; font-size: 24px; margin: 0 0 10px;">
                                 New anonymous feedback received
                             </h1>

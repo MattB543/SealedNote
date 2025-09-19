@@ -52,9 +52,9 @@ export function SignInForm() {
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
       )}
       {message ? (
-        <div className="h-[108px] p-6 bg-gray-100 text-[#424133] rounded-lg flex flex-col justify-center items-center">
+        <div className="min-h-[108px] p-6 bg-gray-100 text-[#424133] rounded-lg flex flex-col justify-center items-center text-center leading-0.5">
           <div className="text-lg font-medium">{message}</div>
-          <p className="mt-4 text-center text-sm text-gray-600">
+          <p className="mt-1 text-center text-sm text-gray-600">
             By continuing, you agree to our terms and privacy policy
           </p>
         </div>

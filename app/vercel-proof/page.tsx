@@ -58,7 +58,7 @@ export default function VercelProofPage() {
 
             <section className="rounded-2xl border border-[#d7c9af] bg-white/80 p-6 sm:p-7 shadow-sm">
               <h2 className="text-xl sm:text-2xl font-semibold text-[#3b3a2c]">
-                Option B: Ask Vercel directly
+                Option B: Ask Vercel directly (via our proxy)
               </h2>
               <p className="mt-3 text-gray-700 leading-relaxed">
                 Call our read-only endpoint that proxies the Vercel Deployments
@@ -77,6 +77,56 @@ export default function VercelProofPage() {
               <p className="mt-3 text-gray-700 leading-relaxed">
                 The response includes the deployment id, URL, and git source SHA
                 reported by Vercel.
+              </p>
+              <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-sm text-amber-800">
+                  ⚠️ <strong>Trust Note:</strong> This endpoint is controlled by us. 
+                  For true independent verification, see Option C below.
+                </p>
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-[#d7c9af] bg-white/80 p-6 sm:p-7 shadow-sm">
+              <h2 className="text-xl sm:text-2xl font-semibold text-[#3b3a2c]">
+                Option C: Independent verification (Zero Trust)
+              </h2>
+              <p className="mt-3 text-gray-700 leading-relaxed">
+                If you have a Vercel account, you can verify this deployment 
+                independently without trusting any code from this website.
+              </p>
+              <div className="mt-4 space-y-3">
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="font-mono text-sm text-gray-700">
+                    Deployment ID: {process.env.VERCEL_DEPLOYMENT_ID || "local-dev"}
+                  </p>
+                </div>
+                <div className="prose prose-sm text-gray-700 max-w-none">
+                  <ol className="space-y-2">
+                    <li>Copy the deployment ID above</li>
+                    <li>Get your Vercel token from <a href="https://vercel.com/account/tokens" target="_blank" rel="noopener noreferrer" className="underline">vercel.com/account/tokens</a></li>
+                    <li>Run this command:
+                      <pre className="mt-2 p-3 bg-gray-900 text-gray-100 rounded-lg overflow-x-auto text-xs">
+{`curl https://api.vercel.com/v13/deployments/${process.env.VERCEL_DEPLOYMENT_ID || "DEPLOYMENT_ID"}?withGitRepoInfo=true \\
+  -H "Authorization: Bearer YOUR_TOKEN"`}
+                      </pre>
+                    </li>
+                    <li>Verify the response shows the correct GitHub repository and commit</li>
+                    <li>Check that commit on GitHub directly</li>
+                  </ol>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Link
+                    href="/VERIFY_DEPLOYMENT.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-full border border-[#d7c9af] px-4 py-2 text-sm font-semibold text-[#3b3a2c] transition-colors hover:bg-[#f7f0e0]"
+                  >
+                    Full Verification Guide
+                  </Link>
+                </div>
+              </div>
+              <p className="mt-4 text-sm text-green-700">
+                ✅ This method requires zero trust in our code - you verify directly with Vercel.
               </p>
             </section>
           </div>
