@@ -3,13 +3,11 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default function VercelProofPage() {
-  const deploymentUrl =
-    process.env.NEXT_PUBLIC_VERCEL_URL || process.env.VERCEL_URL;
+  const vercelAppUrl = "sealednote.vercel.app";
   const owner = process.env.VERCEL_GIT_REPO_OWNER || "MattB543";
   const slug = process.env.VERCEL_GIT_REPO_SLUG || "SealedNote";
   const repoFull = `${owner}/${slug}`;
   const repoUrl = `https://github.com/${repoFull}`;
-  const commit = process.env.VERCEL_GIT_COMMIT_SHA || "local";
 
   return (
     <div className="min-h-full px-3 sm:px-6 py-6 sm:py-10">
@@ -20,9 +18,7 @@ export default function VercelProofPage() {
               Verify This Deployment
             </h1>
             <p className="mt-4 text-gray-700 leading-relaxed">
-              You can verify this deployment is running the exact public code
-              from GitHub by checking the Vercel deployment headers on the
-              Vercel-hosted deployment URL shared below.
+              You can verify this deployment is running the exact public code from GitHub by checking the Vercel deployment headers.
             </p>
           </header>
 
@@ -32,115 +28,83 @@ export default function VercelProofPage() {
                 Deployment Verification
               </h2>
 
-              {deploymentUrl ? (
-                <>
-                  <p className="mt-3 text-gray-700 leading-relaxed">
-                    This app's currently deployed version is hosted at the
-                    following Vercel URL:
-                  </p>
+              <p className="mt-3 text-gray-700 leading-relaxed">
+                This app is deployed at:
+              </p>
 
-                  <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <p className="font-mono text-sm text-gray-700 break-all">
-                      https://{deploymentUrl}
-                    </p>
-                  </div>
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="font-mono text-sm text-gray-700 break-all">
+                  <a href={`https://${vercelAppUrl}`} target="_blank" rel="noopener noreferrer" className="underline">
+                    https://{vercelAppUrl}
+                  </a>
+                </p>
+              </div>
 
-                  <p className="mt-4 text-gray-700 leading-relaxed">
-                    You can verify the source code by checking the HTTP response
-                    headers from this deployment. Vercel automatically adds
-                    headers that prove which GitHub repository and commit this
-                    deployment was built from.
-                  </p>
+              <p className="mt-4 text-gray-700 leading-relaxed">
+                You can verify the source code by checking the HTTP response headers from this Vercel deployment. 
+                Vercel automatically adds headers that prove which GitHub repository and commit this deployment was built from.
+              </p>
 
-                  <div className="mt-6">
-                    <h3 className="text-lg font-semibold text-[#3b3a2c] mb-3">
-                      How to verify:
-                    </h3>
-                    <ol className="space-y-3 text-gray-700">
-                      <li className="flex">
-                        <span className="font-semibold mr-2">1.</span>
-                        <span>
-                          Open your browser's developer tools (F12) and go to
-                          the Network tab
-                        </span>
-                      </li>
-                      <li className="flex">
-                        <span className="font-semibold mr-2">2.</span>
-                        <span>
-                          Visit{" "}
-                          <a
-                            href={`https://${deploymentUrl}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline"
-                          >
-                            https://{deploymentUrl}
-                          </a>
-                        </span>
-                      </li>
-                      <li className="flex">
-                        <span className="font-semibold mr-2">3.</span>
-                        <span>
-                          Look at the response headers for the main document
-                        </span>
-                      </li>
-                      <li className="flex">
-                        <span className="font-semibold mr-2">4.</span>
-                        <span>
-                          Verify these headers match the expected GitHub
-                          repository:
-                        </span>
-                      </li>
-                    </ol>
-                  </div>
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold text-[#3b3a2c] mb-3">
+                  How to verify:
+                </h3>
+                <ol className="space-y-3 text-gray-700">
+                  <li className="flex">
+                    <span className="font-semibold mr-2">1.</span>
+                    <span>Open your browser's developer tools (F12) and go to the Network tab</span>
+                  </li>
+                  <li className="flex">
+                    <span className="font-semibold mr-2">2.</span>
+                    <span>Visit <a href={`https://${vercelAppUrl}`} target="_blank" rel="noopener noreferrer" className="underline">https://{vercelAppUrl}</a></span>
+                  </li>
+                  <li className="flex">
+                    <span className="font-semibold mr-2">3.</span>
+                    <span>Look at the response headers for the main document</span>
+                  </li>
+                  <li className="flex">
+                    <span className="font-semibold mr-2">4.</span>
+                    <span>Verify these headers show the correct GitHub repository:</span>
+                  </li>
+                </ol>
+              </div>
 
-                  <div className="mt-4 p-4 bg-gray-900 text-gray-100 rounded-lg overflow-x-auto">
-                    <pre className="text-xs leading-relaxed">
-                      {`x-vercel-deployment-url: ${deploymentUrl}
-x-vercel-git-commit-sha: ${commit}
+              <div className="mt-4 p-4 bg-gray-900 text-gray-100 rounded-lg overflow-x-auto">
+                <pre className="text-xs leading-relaxed">
+{`x-vercel-deployment-url: <deployment-specific-url>
+x-vercel-git-commit-sha: <commit-sha>
+x-vercel-git-commit-author-login: <github-username>
 x-vercel-git-repo-owner: ${owner}
 x-vercel-git-repo-slug: ${slug}`}
-                    </pre>
-                  </div>
+                </pre>
+              </div>
 
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    <Link
-                      href={repoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="rounded-full border border-[#d7c9af] px-4 py-2 text-sm font-semibold text-[#3b3a2c] transition-colors hover:bg-[#f7f0e0]"
-                    >
-                      View GitHub Repository: {repoFull}
-                    </Link>
-                    {commit !== "local" && (
-                      <Link
-                        href={`${repoUrl}/commit/${commit}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="rounded-full border border-[#d7c9af] px-4 py-2 text-sm font-semibold text-[#3b3a2c] transition-colors hover:bg-[#f7f0e0]"
-                      >
-                        View Commit: {commit.substring(0, 7)}
-                      </Link>
-                    )}
-                  </div>
+              <p className="mt-4 text-gray-700 leading-relaxed">
+                Alternatively, use curl to check the headers:
+              </p>
 
-                  <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-sm text-green-800">
-                      ✅ <strong>Trust Note:</strong> These headers are set by
-                      Vercel's infrastructure and cannot be modified by the
-                      application code. They provide proof the code shown on
-                      GitHub is the code running in this deployment.
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                  <p className="text-sm text-amber-800">
-                    ⚠️ Running in local development mode. Deploy to Vercel to
-                    enable verification.
-                  </p>
-                </div>
-              )}
+              <div className="mt-3 p-4 bg-gray-900 text-gray-100 rounded-lg overflow-x-auto">
+                <pre className="text-xs">
+{`curl -I https://${vercelAppUrl}`}
+                </pre>
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link
+                  href={repoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-full border border-[#d7c9af] px-4 py-2 text-sm font-semibold text-[#3b3a2c] transition-colors hover:bg-[#f7f0e0]"
+                >
+                  View GitHub Repository: {repoFull}
+                </Link>
+              </div>
+
+              <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-800">
+                  ✅ <strong>Trust Note:</strong> These headers are set by Vercel's infrastructure and cannot be modified by the application code. They provide cryptographic proof of the exact code running in this deployment.
+                </p>
+              </div>
             </section>
           </div>
         </article>
