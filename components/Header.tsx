@@ -68,30 +68,6 @@ export default function Header() {
           >
             ▲ Build Proof
           </Link>
-          {commitUrl ? (
-            <a
-              href={commitUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-full border border-gray-300 bg-off-white px-2.5 sm:px-3 py-1 text-gray-800"
-              aria-label={`Live commit ${shortSha}`}
-              title={commitSha}
-            >
-              <span className="font-medium hidden sm:inline">Live Commit:</span>
-              <span className="font-medium sm:hidden">Commit:</span>{" "}
-              <span className="font-mono underline decoration-dotted underline-offset-4">
-                {shortSha}
-              </span>
-            </a>
-          ) : (
-            <span className="rounded-full border border-gray-300 bg-off-white px-2.5 sm:px-3 py-1 text-gray-800">
-              <span className="font-medium hidden sm:inline">Live Commit:</span>
-              <span className="font-medium sm:hidden">Commit:</span>{" "}
-              <span className="font-mono" title={commitSha}>
-                {shortSha}
-              </span>
-            </span>
-          )}
         </div>
       </div>
     </header>
