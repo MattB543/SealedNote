@@ -4,9 +4,8 @@ export const dynamic = "force-dynamic";
 
 export default function VercelProofPage() {
   const vercelAppUrl = "sealednote.vercel.app";
-  const owner = process.env.VERCEL_GIT_REPO_OWNER || "MattB543";
-  const slug = process.env.VERCEL_GIT_REPO_SLUG || "SealedNote";
-  const repoFull = `${owner}/${slug}`;
+  const commitSha = process.env.VERCEL_GIT_COMMIT_SHA || "<commit-sha>";
+  const repoFull = "MattB543/SealedNote";
   const repoUrl = `https://github.com/${repoFull}`;
 
   return (
@@ -71,21 +70,8 @@ export default function VercelProofPage() {
 
               <div className="mt-4 p-4 bg-gray-900 text-gray-100 rounded-lg overflow-x-auto">
                 <pre className="text-xs leading-relaxed">
-{`x-vercel-deployment-url: <deployment-specific-url>
-x-vercel-git-commit-sha: <commit-sha>
-x-vercel-git-commit-author-login: <github-username>
-x-vercel-git-repo-owner: ${owner}
-x-vercel-git-repo-slug: ${slug}`}
-                </pre>
-              </div>
-
-              <p className="mt-4 text-gray-700 leading-relaxed">
-                Alternatively, use curl to check the headers:
-              </p>
-
-              <div className="mt-3 p-4 bg-gray-900 text-gray-100 rounded-lg overflow-x-auto">
-                <pre className="text-xs">
-{`curl -I https://${vercelAppUrl}`}
+{`x-vercel-git-commit-sha: ${commitSha}
+x-vercel-git-repo: ${repoFull}`}
                 </pre>
               </div>
 
