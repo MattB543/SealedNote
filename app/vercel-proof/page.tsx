@@ -17,7 +17,8 @@ export default function VercelProofPage() {
               Verify This Deployment
             </h1>
             <p className="mt-4 text-gray-700 leading-relaxed">
-              You can verify this deployment is running the exact public code from GitHub by checking the Vercel deployment headers.
+              You can verify this deployment is running the exact public code
+              from GitHub by checking the Vercel deployment headers.
             </p>
           </header>
 
@@ -33,15 +34,22 @@ export default function VercelProofPage() {
 
               <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <p className="font-mono text-sm text-gray-700 break-all">
-                  <a href={`https://${vercelAppUrl}`} target="_blank" rel="noopener noreferrer" className="underline">
+                  <a
+                    href={`https://${vercelAppUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                  >
                     https://{vercelAppUrl}
                   </a>
                 </p>
               </div>
 
               <p className="mt-4 text-gray-700 leading-relaxed">
-                You can verify the source code by checking the HTTP response headers from this Vercel deployment. 
-                Vercel automatically adds headers that prove which GitHub repository and commit this deployment was built from.
+                You can verify the source code by checking the HTTP response
+                headers from this Vercel deployment. Vercel automatically adds
+                headers that prove which GitHub repository and commit this
+                deployment was built from.
               </p>
 
               <div className="mt-6">
@@ -51,27 +59,44 @@ export default function VercelProofPage() {
                 <ol className="space-y-3 text-gray-700">
                   <li className="flex">
                     <span className="font-semibold mr-2">1.</span>
-                    <span>Open your browser's developer tools (F12) and go to the Network tab</span>
+                    <span>
+                      Open your browser's developer tools (F12) and go to the
+                      Network tab
+                    </span>
                   </li>
                   <li className="flex">
                     <span className="font-semibold mr-2">2.</span>
-                    <span>Visit <a href={`https://${vercelAppUrl}`} target="_blank" rel="noopener noreferrer" className="underline">https://{vercelAppUrl}</a></span>
+                    <span>
+                      Visit{" "}
+                      <a
+                        href={`https://${vercelAppUrl}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline"
+                      >
+                        https://{vercelAppUrl}
+                      </a>
+                    </span>
                   </li>
                   <li className="flex">
                     <span className="font-semibold mr-2">3.</span>
-                    <span>Look at the response headers for the main document</span>
+                    <span>
+                      Look at the response headers for the main document
+                    </span>
                   </li>
                   <li className="flex">
                     <span className="font-semibold mr-2">4.</span>
-                    <span>Verify these headers show the correct GitHub repository:</span>
+                    <span>
+                      Verify these headers show the correct GitHub repository:
+                    </span>
                   </li>
                 </ol>
               </div>
 
               <div className="mt-4 p-4 bg-gray-900 text-gray-100 rounded-lg overflow-x-auto">
                 <pre className="text-xs leading-relaxed">
-{`x-vercel-git-commit-sha: ${commitSha}
-x-vercel-git-repo: ${repoFull}`}
+                  {`x-repo: ${repoFull}
+                    x-commit-sha: ${commitSha}`}
                 </pre>
               </div>
 
@@ -88,7 +113,10 @@ x-vercel-git-repo: ${repoFull}`}
 
               <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
                 <p className="text-sm text-green-800">
-                  ✅ <strong>Trust Note:</strong> These headers are set by Vercel's infrastructure and cannot be modified by the application code. They provide cryptographic proof of the exact code running in this deployment.
+                  ✅ <strong>Trust Note:</strong> These headers are set by
+                  Vercel's infrastructure and cannot be modified by the
+                  application code. They provide cryptographic proof of the
+                  exact code running in this deployment.
                 </p>
               </div>
             </section>
