@@ -96,7 +96,7 @@ export default function VercelProofPage() {
               <div className="mt-4 p-4 bg-gray-900 text-gray-100 rounded-lg overflow-x-auto">
                 <pre className="text-xs leading-relaxed">
                   {`x-repo: ${repoFull}
-                    x-commit-sha: ${commitSha}`}
+x-commit-sha: ${commitSha}`}
                 </pre>
               </div>
 
