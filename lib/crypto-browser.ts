@@ -9,6 +9,8 @@ export function generateSalt(): string {
     .join("");
 }
 
+const PBKDF2_ITERATIONS = 600_000;
+
 export const browserCrypto = {
   // Generate RSA key pair without password (returns PEM strings)
   async generateKeyPairNoPassword(): Promise<{
@@ -47,7 +49,7 @@ export const browserCrypto = {
       {
         name: "PBKDF2",
         salt: encoder.encode(salt + "_priv"),
-        iterations: 100000,
+        iterations: PBKDF2_ITERATIONS,
         hash: "SHA-256",
       },
       keyMaterial,
@@ -88,7 +90,7 @@ export const browserCrypto = {
       {
         name: "PBKDF2",
         salt: encoder.encode(salt + "_priv"),
-        iterations: 100000,
+        iterations: PBKDF2_ITERATIONS,
         hash: "SHA-256",
       },
       keyMaterial,
@@ -170,34 +172,23 @@ export const browserCrypto = {
         ["decrypt"]
       );
 
-      for (const ivLen of [12, 16]) {
-        try {
-          let offset = 2 + keyLength;
-          const iv = combined.slice(offset, offset + ivLen);
-          offset += ivLen;
-          const authTag = combined.slice(offset, offset + 16);
-          offset += 16;
-          const encryptedMessage = combined.slice(offset);
+      let offset = 2 + keyLength;
+      const iv = combined.slice(offset, offset + 12);
+      offset += 12;
+      const authTag = combined.slice(offset, offset + 16);
+      offset += 16;
+      const encryptedMessage = combined.slice(offset);
 
-          const ciphertext = new Uint8Array(
-            encryptedMessage.length + authTag.length
-          );
-          ciphertext.set(encryptedMessage, 0);
-          ciphertext.set(authTag, encryptedMessage.length);
+      const ciphertext = new Uint8Array(encryptedMessage.length + authTag.length);
+      ciphertext.set(encryptedMessage, 0);
+      ciphertext.set(authTag, encryptedMessage.length);
 
-          const decrypted = await crypto.subtle.decrypt(
-            { name: "AES-GCM", iv },
-            key,
-            ciphertext
-          );
-          return new TextDecoder().decode(decrypted);
-        } catch {
-          // try next ivLen
-        }
-      }
-      throw new Error(
-        "Failed to decrypt - incorrect password or corrupted data"
+      const decrypted = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv },
+        key,
+        ciphertext
       );
+      return new TextDecoder().decode(decrypted);
     } catch (error) {
       throw new Error(
         "Failed to decrypt - incorrect password or corrupted data"

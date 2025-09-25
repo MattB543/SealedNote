@@ -66,38 +66,6 @@ export async function middleware(req: NextRequest) {
   res.headers.set("X-Repo", repo);
   res.headers.set("X-Branch", process.env.VERCEL_GIT_COMMIT_REF || "unknown");
 
-  const supabase = createMiddlewareClient({ req, res });
-
-  // Handle magic-link redirect that lands anywhere with ?code=...
-  try {
-    const url = new URL(req.url);
-    const code = url.searchParams.get("code");
-    if (code) {
-      const {
-        data: { session },
-      } = await supabase.auth.exchangeCodeForSession(code);
-      // Decide next hop based on whether the user has a profile row
-      let target = "/auth/unlock";
-      if (session?.user) {
-        const { data: existing } = await supabase
-          .from("users")
-          .select("id")
-          .eq("id", session.user.id)
-          .maybeSingle();
-        if (!existing) target = "/auth/setup";
-      }
-      const base = process.env.NEXT_PUBLIC_APP_URL || url.origin;
-      // Important: preserve Set-Cookie headers from `createMiddlewareClient`
-      // so the session persists after redirect
-      const redirectUrl = new URL(target, base);
-      return NextResponse.redirect(redirectUrl, { headers: res.headers });
-    }
-  } catch {}
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   // Protected routes that require authentication
   const protectedPaths = [
     "/dashboard",
@@ -109,9 +77,51 @@ export async function middleware(req: NextRequest) {
     req.nextUrl.pathname.startsWith(path)
   );
 
-  if (isProtectedPath && !user) {
-    // Redirect to sign in if trying to access protected route without session
-    return NextResponse.redirect(new URL("/auth/signin", req.url));
+  // Only create Supabase client and check auth for protected routes or auth callback
+  const url = new URL(req.url);
+  const isAuthCallback = req.nextUrl.pathname === "/auth/callback";
+  const code = isAuthCallback ? url.searchParams.get("code") : null;
+  
+  if (code || isProtectedPath) {
+    const supabase = createMiddlewareClient({ req, res });
+    
+    // Only exchange codes on the /auth/callback route for security
+    if (code && isAuthCallback) {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.exchangeCodeForSession(code);
+        // Decide next hop based on whether the user has a profile row
+        let target = "/auth/unlock";
+        if (session?.user) {
+          const { data: existing } = await supabase
+            .from("users")
+            .select("id")
+            .eq("id", session.user.id)
+            .maybeSingle();
+          if (!existing) target = "/auth/setup";
+        }
+        const base = process.env.NEXT_PUBLIC_APP_URL || url.origin;
+        // Important: preserve Set-Cookie headers from `createMiddlewareClient`
+        // so the session persists after redirect
+        const redirectUrl = new URL(target, base);
+        return NextResponse.redirect(redirectUrl, { headers: res.headers });
+      } catch (error) {
+        // Continue with normal flow if code exchange fails
+      }
+    }
+    
+    // Only check user for protected paths
+    if (isProtectedPath) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      
+      if (!user) {
+        // Redirect to home page if trying to access protected route without session
+        return NextResponse.redirect(new URL("/", req.url));
+      }
+    }
   }
 
   return res;

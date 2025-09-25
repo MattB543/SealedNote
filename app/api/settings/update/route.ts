@@ -39,6 +39,7 @@ function checkRateLimit(userId: string): boolean {
 export async function POST(request: NextRequest) {
   try {
     const {
+      username,
       custom_prompt,
       openrouter_api_key,
       ai_filter_enabled,
@@ -65,6 +66,139 @@ export async function POST(request: NextRequest) {
     }
 
     const update: any = {};
+    
+    // Handle username change with proper tracking
+    if (typeof username !== "undefined") {
+      const newUsername = String(username).trim().toLowerCase();
+      
+      // Validate username format
+      if (!newUsername) {
+        return NextResponse.json(
+          { error: "Username cannot be empty" },
+          { status: 400 }
+        );
+      }
+      if (!/^[a-z0-9-]+$/.test(newUsername)) {
+        return NextResponse.json(
+          { error: "Username can only contain lowercase letters, numbers, and hyphens" },
+          { status: 400 }
+        );
+      }
+      if (newUsername.length < 3 || newUsername.length > 30) {
+        return NextResponse.json(
+          { error: "Username must be between 3 and 30 characters" },
+          { status: 400 }
+        );
+      }
+      
+      // Get current user data to check change count
+      const { data: currentUser, error: fetchError } = await supabase
+        .from("users")
+        .select("username, username_change_count")
+        .eq("id", user.id)
+        .single();
+        
+      if (fetchError) {
+        throw fetchError;
+      }
+      
+      // Skip if username hasn't changed
+      if (currentUser.username === newUsername) {
+        // No change needed, continue with other updates
+      } else {
+        
+        // Check change limit
+        if ((currentUser.username_change_count || 0) >= 3) {
+          return NextResponse.json(
+            { error: "Username change limit reached (maximum 3 changes)" },
+            { status: 400 }
+          );
+        }
+        
+        // Check if username is already taken (including in history)
+        const { data: existingUser } = await supabase
+          .from("users")
+          .select("id")
+          .eq("username", newUsername)
+          .maybeSingle();
+        
+        if (existingUser) {
+          return NextResponse.json(
+            { error: "Username already taken" },
+            { status: 400 }
+          );
+        }
+        
+        // Check username history to prevent reuse
+        const { data: historyCheck } = await supabase
+          .from("username_history")
+          .select("id")
+          .eq("username", newUsername)
+          .maybeSingle();
+        
+        if (historyCheck) {
+          return NextResponse.json(
+            { error: "This username has been used before and cannot be reused" },
+            { status: 400 }
+          );
+        }
+        
+        // Add old username to history (only if not already there)
+        // Check if current username is already in history
+        const { data: currentInHistory } = await supabase
+          .from("username_history")
+          .select("id")
+          .eq("username", currentUser.username)
+          .maybeSingle();
+        
+        if (!currentInHistory) {
+          // Only insert if not already in history
+          const { error: historyError } = await supabase
+            .from("username_history")
+            .insert({
+              user_id: user.id,
+              username: currentUser.username,
+            });
+            
+          if (historyError) {
+            // Something went wrong with the insert
+            return NextResponse.json(
+              { error: "Username change failed. Please try a different username." },
+              { status: 400 }
+            );
+          }
+        }
+        
+        // Update username and increment change count
+        update.username = newUsername;
+        update.username_change_count = (currentUser.username_change_count || 0) + 1;
+        
+        // Also need to update the feedback link
+        const { data: linkData, error: linkError } = await supabase
+          .from("feedback_links")
+          .update({ share_token: newUsername })
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .select();
+        
+        if (linkError) {
+          // Rollback history entry only if we added it
+          if (!currentInHistory) {
+            await supabase
+              .from("username_history")
+              .delete()
+              .eq("user_id", user.id)
+              .eq("username", currentUser.username);
+          }
+            
+          return NextResponse.json(
+            { error: "Failed to update feedback link" },
+            { status: 400 }
+          );
+        }
+      }
+    }
+    
     if (typeof custom_prompt !== "undefined") {
       const trimmed = String(custom_prompt).trim();
       if (trimmed.length > 1000) {
@@ -130,11 +264,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
-    const { error: updateError } = await supabase
+    const { data: updateData, error: updateError } = await supabase
       .from("users")
       .update(update)
-      .eq("id", user.id);
-    if (updateError) throw updateError;
+      .eq("id", user.id)
+      .select();
+
+    if (updateError) {
+      throw updateError;
+    }
 
     return NextResponse.json({ success: true });
   } catch {

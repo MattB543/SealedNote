@@ -4,8 +4,10 @@ import "./globals.css";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies, headers } from "next/headers";
 import SupabaseProvider from "@/components/SupabaseProvider";
+import { PrivateKeyProvider } from "@/components/PrivateKeyProvider";
 import Header from "@/components/Header";
 import Script from "next/script";
+import Link from "next/link";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const meri = Merienda({
@@ -48,20 +50,26 @@ export default async function RootLayout({
         {/* Pass nonce to Next.js Script components */}
         <Script id="nonce-provider" strategy="afterInteractive" nonce={nonce} />
         <SupabaseProvider session={session}>
-          {/* App shell: header + main + footer without fixed positioning */}
-          <div className="min-h-screen flex flex-col">
-            <Header />
-            <main className="flex-1 min-h-0 mt-8">{children}</main>
-            <footer className="mt-auto">
-              <div className="max-w-4xl mx-auto px-4 py-3 text-center text-sm text-gray-700">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center sm:gap-2">
-                  <div>🔒 Open-source & encrypted</div>
-                  <div className="hidden sm:inline">|</div>
-                  <div>Terms of Service | Privacy Policy</div>
+          <PrivateKeyProvider>
+            {/* App shell: header + main + footer without fixed positioning */}
+            <div className="min-h-screen flex flex-col">
+              <Header />
+              <main className="flex-1 min-h-0 mt-8">{children}</main>
+              <footer className="mt-auto">
+                <div className="max-w-4xl mx-auto px-4 py-3 text-center text-sm text-gray-700">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center sm:gap-2">
+                    <div>🔒 Open-source & encrypted</div>
+                    <div className="hidden sm:inline">|</div>
+                    <div>
+                      <Link href="/terms" className="hover:underline">Terms of Service</Link>
+                      {" | "}
+                      <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </footer>
-          </div>
+              </footer>
+            </div>
+          </PrivateKeyProvider>
         </SupabaseProvider>
       </body>
     </html>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSupabase } from "@/components/SupabaseProvider";
+import { usePrivateKey } from "@/components/PrivateKeyProvider";
 import { browserCrypto } from "@/lib/crypto-browser";
 import { DEFAULT_FEEDBACK_NOTE } from "@/lib/constants";
 import Link from "next/link";
@@ -16,6 +17,7 @@ const PROMPT_EXAMPLES = {
 
 export default function Settings() {
   const { supabase } = useSupabase();
+  const { clearPrivateKey, privateKey } = usePrivateKey();
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [customPrompt, setCustomPrompt] = useState("");
@@ -25,15 +27,15 @@ export default function Settings() {
   const [feedbackLink, setFeedbackLink] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [hasLocalKey, setHasLocalKey] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [exportPassword, setExportPassword] = useState("");
-  const [exportedKey, setExportedKey] = useState("");
-  const [exportError, setExportError] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState(false);
   const [openRouterKey, setOpenRouterKey] = useState("");
   const [hasOpenRouterKey, setHasOpenRouterKey] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [changingUsername, setChangingUsername] = useState(false);
+  const [showUsernameModal, setShowUsernameModal] = useState(false);
 
   const loadUserData = useCallback(async () => {
     try {
@@ -41,7 +43,7 @@ export default function Settings() {
       const { data: authData, error: authError } =
         await supabase.auth.getUser();
       if (authError || !authData?.user) {
-        router.push("/auth/signin");
+        router.push("/");
         return;
       }
       const userId = authData.user.id;
@@ -55,6 +57,7 @@ export default function Settings() {
       if (userError) throw userError;
 
       setUser(userData);
+      setNewUsername(userData.username || "");
       setCustomPrompt(userData.custom_prompt || PROMPT_EXAMPLES.balanced);
       setFeedbackNote(userData.feedback_note || DEFAULT_FEEDBACK_NOTE);
       if (userData.openrouter_api_key) {
@@ -65,27 +68,11 @@ export default function Settings() {
         setOpenRouterKey("");
       }
 
-      // Check if we have encrypted private key in localStorage
-      const encryptedPrivateKey = localStorage.getItem(
-        "ff_encrypted_private_key"
-      );
-      const storedSalt = localStorage.getItem("ff_salt");
-      setHasLocalKey(
-        !!(encryptedPrivateKey && storedSalt && storedSalt === userData.salt)
-      );
-
-      // Get active feedback link
-      const { data: linkData } = await supabase
-        .from("feedback_links")
-        .select("share_token")
-        .eq("user_id", userId)
-        .eq("is_active", true)
-        .single();
-
-      if (linkData) {
+      // Set feedback link based on username
+      if (userData.username) {
         const baseUrl =
           process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-        setFeedbackLink(`${baseUrl}/f/${linkData.share_token}`);
+        setFeedbackLink(`${baseUrl}/f/${userData.username}`);
       }
     } catch (error: any) {
       // Error loading user data
@@ -165,106 +152,77 @@ export default function Settings() {
     }
   };
 
-  const generateNewLink = async () => {
+  const saveUsername = async () => {
     try {
-      // Deactivate old links
-      const { data: authData2 } = await supabase.auth.getUser();
-      const userId2 = authData2?.user?.id;
-      await supabase
-        .from("feedback_links")
-        .update({ is_active: false })
-        .eq("user_id", userId2);
+      setChangingUsername(true);
+      setUsernameError(null);
+      setMessage(null);
 
-      // Create new link
-      const shareToken = (crypto as any).randomUUID
-        ? (crypto as any).randomUUID()
-        : Math.random().toString(36).substring(2, 15);
-      const { error } = await supabase.from("feedback_links").insert({
-        user_id: userId2,
-        share_token: shareToken,
-        is_active: true,
+      const res = await fetch("/api/settings/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: newUsername }),
       });
+      const data = await res.json();
 
-      if (error) throw error;
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update username");
+      }
 
-      await loadUserData();
-      setMessage("New feedback link generated!");
+      // Update local state and feedback link
+      setUser({
+        ...user,
+        username: newUsername,
+        username_change_count: (user.username_change_count || 0) + 1,
+      });
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      setFeedbackLink(`${baseUrl}/f/${newUsername}`);
+      localStorage.setItem("ff_username", newUsername);
+
+      setShowUsernameModal(false);
+      setMessage("Username updated successfully!");
       setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
-      setMessage("Failed to generate new link");
-    }
-  };
-
-  const removeLocalKey = () => {
-    localStorage.removeItem("ff_encrypted_private_key");
-    localStorage.removeItem("ff_salt");
-    setHasLocalKey(false);
-    setMessage("Private key removed from browser");
-    setTimeout(() => setMessage(null), 3000);
-  };
-
-  const handleExportKey = async () => {
-    try {
-      setExportError(null);
-
-      if (!exportPassword) {
-        setExportError("Please enter your encryption password");
-        return;
-      }
-
-      const encryptedPrivateKey = localStorage.getItem(
-        "ff_encrypted_private_key"
-      );
-      const salt = localStorage.getItem("ff_salt");
-
-      if (!encryptedPrivateKey || !salt) {
-        setExportError("No private key found in browser");
-        return;
-      }
-
-      // Decrypt the private key with password
-      const decryptedKey = await browserCrypto.decryptPrivateKeyWithPassword(
-        encryptedPrivateKey,
-        exportPassword,
-        salt
-      );
-
-      setExportedKey(decryptedKey);
-    } catch (error: any) {
-      setExportError("Incorrect password");
+      setUsernameError(error.message || "Failed to update username");
+    } finally {
+      setChangingUsername(false);
     }
   };
 
   const copyExportedKey = async () => {
-    await navigator.clipboard.writeText(exportedKey);
-    setCopiedKey(true);
-    setTimeout(() => setCopiedKey(false), 2000);
+    if (privateKey) {
+      await navigator.clipboard.writeText(privateKey);
+      setCopiedKey(true);
+      setTimeout(() => setCopiedKey(false), 2000);
+    }
   };
 
   const handleSignOut = async () => {
     if (signingOut) return; // Prevent double-clicks
-    
+
     try {
       setSigningOut(true);
-      
-      // Clear local storage first
-      localStorage.removeItem("ff_encrypted_private_key");
+
+      // Clear private key from memory immediately
+      clearPrivateKey();
+
+      // Clear local storage
       localStorage.removeItem("ff_salt");
-      localStorage.removeItem("ff_private_key");
-      
-      // Sign out from Supabase
+      localStorage.removeItem("ff_username");
+      sessionStorage.removeItem("ff_session_private_key");
+
+      // Sign out from Supabase and wait for completion
       const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.error("Sign out error:", error);
-      }
-      
-      // Use window.location for a full page reload to clear all state
-      // This ensures the server component properly checks auth state
+
+      // Small delay to ensure cleanup completes
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Force reload clears everything
       window.location.href = "/";
-    } catch (err) {
-      console.error("Error during sign out:", err);
-      // Force redirect even on error
+    } catch (error) {
+      // Even on error, force redirect after delay
+      await new Promise((resolve) => setTimeout(resolve, 100));
       window.location.href = "/";
     }
   };
@@ -295,6 +253,69 @@ export default function Settings() {
             {message}
           </div>
         )}
+
+        {/* Username & Feedback Link */}
+        <div className="bg-off-white rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4">Your Profile</h2>
+
+          <div className="space-y-4 mb-4">
+            <div>
+              <p className="text-sm text-gray-600 mb-0.5">Username</p>
+              <div className="flex items-center gap-2">
+                <p className="text-md font-medium">{user.username}</p>
+                {user.username_change_count > 0 && (
+                  <span className="text-xs text-gray-500">
+                    ({user.username_change_count}/3 changes used)
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm text-gray-600 mb-1">
+                Share this link to collect feedback
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="text-sm bg-gray-100 px-3 py-1.5 rounded flex-1 break-all">
+                  {feedbackLink}
+                </code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(feedbackLink);
+                    setMessage("Link copied to clipboard!");
+                    setTimeout(() => setMessage(null), 2000);
+                  }}
+                  className="px-3 py-1.5 text-sm bg-gray-200 rounded hover:bg-gray-300 whitespace-nowrap"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-4 border-t">
+            {(user.username_change_count || 0) < 3 && (
+              <button
+                onClick={() => {
+                  setNewUsername(user.username);
+                  setUsernameError(null);
+                  setShowUsernameModal(true);
+                }}
+                className="px-3 py-1.5 text-sm bg-gray-100 text-gray-800 rounded hover:bg-gray-200"
+              >
+                Change username/link
+              </button>
+            )}
+          </div>
+
+          {(user.username_change_count || 0) >= 3 && (
+            <div className="p-3 bg-yellow-50 border border-yellow-300 rounded">
+              <p className="text-sm text-yellow-800">
+                You've reached the maximum number of username changes (3).
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Feedback Note for Senders */}
         <div className="bg-off-white rounded-lg shadow-sm p-6 mb-6">
@@ -402,8 +423,8 @@ export default function Settings() {
               <h2 className="text-lg font-semibold">AI Reviewer (Coach)</h2>
               <p className="text-sm text-gray-600">
                 {user.ai_reviewer_enabled
-                  ? "Senders will see coaching suggestions before sending."
-                  : "Enable to provide coaching suggestions to senders."}
+                  ? "Before sending, people see AI suggestions to improve their feedback's constructiveness, clarity, and anonymity. They can apply rewrites or send their original message."
+                  : "Enable to help senders improve their feedback before sending. The AI will suggest ways to be more constructive, protect anonymity, and communicate clearly."}
               </p>
             </div>
             <button
@@ -446,7 +467,7 @@ export default function Settings() {
               </h2>
               <p className="text-sm text-gray-600">
                 {user.auto_delete_mean
-                  ? "Messages flagged as mean are dropped silently."
+                  ? "Messages flagged by the filter are dropped silently."
                   : "Enable to automatically drop feedback flagged as mean."}
               </p>
             </div>
@@ -480,33 +501,6 @@ export default function Settings() {
             >
               {user.auto_delete_mean ? "Disable" : "Enable"}
             </button>
-          </div>
-        </div>
-
-        {/* Feedback Link */}
-        <div className="bg-off-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-start justify-between gap-4 mb-3">
-            <div>
-              <h2 className="text-lg font-semibold">Feedback Link</h2>
-              <p className="text-sm text-gray-600">
-                Share this link to collect feedback securely.
-              </p>
-            </div>
-          </div>
-          <div className="p-3 bg-gray-50 rounded-lg mb-2">
-            <p className="text-sm text-gray-600 mb-1">Current link:</p>
-            <code className="text-sm break-all">{feedbackLink}</code>
-          </div>
-          <div className="ml-auto flex flex-col items-end">
-            <button
-              onClick={generateNewLink}
-              className="px-4 py-2 text-base rounded"
-            >
-              Generate New Link
-            </button>
-            <p className="text-sm text-gray-500 mt-2">
-              This will disable your old link
-            </p>
           </div>
         </div>
 
@@ -574,38 +568,21 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Private Key Management */}
+        {/* Private Key Export */}
         <div className="bg-off-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Private Key Management</h2>
+          <h2 className="text-lg font-semibold mb-4">Export Private Key</h2>
 
-          {hasLocalKey ? (
-            <div className="p-3 bg-gray-50 border border-[#424133] rounded mb-3">
-              <p className="text-md text-[#424133] font-medium">
-                ✓ Private key saved in browser
-              </p>
-              <p className="text-sm text-gray-600 mt-1">
-                Your encrypted private key is stored locally in this browser
-              </p>
-              <button
-                onClick={removeLocalKey}
-                className="mt-3 inline-flex items-center px-3 py-1.5 rounded text-sm"
-              >
-                Remove from browser
-              </button>
-            </div>
-          ) : (
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded mb-3">
-              <p className="text-sm text-yellow-700 font-medium">
-                ⚠️ Private key not saved in browser
-              </p>
-              <p className="text-sm text-gray-600 mt-1">
-                You'll need to enter your full private key each time to read
-                feedback
-              </p>
-            </div>
-          )}
+          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded mb-3">
+            <p className="text-sm text-yellow-700 font-medium">
+              ⚠️ Store your private key securely
+            </p>
+            <p className="text-sm text-gray-600 mt-1">
+              You'll need your private key to decrypt feedback. Keep it in a
+              password manager.
+            </p>
+          </div>
 
-          {hasLocalKey && (
+          {privateKey && (
             <div className="flex justify-end">
               <button
                 onClick={() => setShowExportModal(true)}
@@ -637,91 +614,162 @@ export default function Settings() {
         </div>
       </div>
 
+      {/* Change Username Modal */}
+      {showUsernameModal && (user.username_change_count || 0) < 3 && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-off-white rounded-lg p-6 max-w-lg w-full">
+            <h3 className="text-xl font-bold mb-4">
+              Change Username & Feedback Link
+            </h3>
+
+            <div className="p-3 bg-yellow-50 border border-yellow-300 rounded mb-4">
+              <p className="text-sm text-yellow-800 font-medium mb-1">
+                ⚠️ Important:
+              </p>
+              <ul className="text-sm text-yellow-700 space-y-1">
+                <li>
+                  • You can only change your username{" "}
+                  {3 - user.username_change_count} more time
+                  {3 - user.username_change_count === 1 ? "" : "s"}
+                </li>
+                <li>• Old usernames cannot be reused</li>
+                <li>• Your feedback link will update automatically</li>
+              </ul>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">
+                Current username
+              </label>
+              <p className="text-sm bg-gray-100 px-3 py-2 rounded mb-4">
+                {user.username}
+              </p>
+
+              <label className="block text-sm font-medium mb-2">
+                New username
+              </label>
+              <input
+                type="text"
+                value={newUsername}
+                onChange={(e) => {
+                  setNewUsername(e.target.value.toLowerCase());
+                  setUsernameError(null);
+                }}
+                placeholder="john-doe"
+                maxLength={30}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                New link will be:{" "}
+                {process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/f/
+                {newUsername || "..."}
+              </p>
+            </div>
+
+            {usernameError && (
+              <p className="text-sm text-red-600 mb-4">{usernameError}</p>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowUsernameModal(false);
+                  setNewUsername(user.username);
+                  setUsernameError(null);
+                }}
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveUsername}
+                disabled={
+                  changingUsername ||
+                  !newUsername ||
+                  newUsername === user.username
+                }
+                className="flex-1 px-4 py-2 bg-[#424133] text-white rounded-lg hover:bg-[#53524d] disabled:opacity-50"
+              >
+                {changingUsername ? "Updating..." : "Update Username"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Export Private Key Modal */}
       {showExportModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-off-white rounded-lg p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold mb-4">Export Private Key</h3>
 
-            {!exportedKey ? (
+            <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mb-4">
+              <p className="text-sm font-semibold text-yellow-800 mb-2">
+                ⚠️ Keep this key secure!
+              </p>
+              <p className="text-sm text-yellow-700">
+                Anyone with this key can read your encrypted feedback
+              </p>
+            </div>
+
+            {privateKey ? (
               <>
-                <p className="text-sm text-gray-600 mb-4">
-                  Enter your encryption password to export your private key
-                </p>
-
-                <input
-                  type="password"
-                  value={exportPassword}
-                  onChange={(e) => setExportPassword(e.target.value)}
-                  placeholder="Enter your encryption password"
-                  className="w-full px-3 py-2 border rounded-lg mb-3"
-                />
-
-                {exportError && (
-                  <p className="text-sm text-red-600 mb-3">{exportError}</p>
-                )}
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleExportKey}
-                    className="px-4 py-2 text-base rounded-lg"
-                  >
-                    Decrypt and Export
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowExportModal(false);
-                      setExportPassword("");
-                      setExportError(null);
-                    }}
-                    className="px-4 py-2 text-base bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mb-4">
-                  <p className="text-sm font-semibold text-yellow-800 mb-2">
-                    ⚠️ Keep this key secure!
-                  </p>
-                  <p className="text-sm text-yellow-700">
-                    Anyone with this key can read your encrypted feedback
-                  </p>
-                </div>
-
                 <div className="bg-gray-100 p-3 rounded mb-4">
                   <label className="text-sm text-gray-600">
                     Your Private Key:
                   </label>
                   <textarea
                     readOnly
-                    value={exportedKey}
+                    value={privateKey}
                     className="w-full h-24 mt-1 p-2 text-sm font-mono bg-off-white border rounded"
                     onClick={(e) => e.currentTarget.select()}
                   />
-                  <button
-                    onClick={copyExportedKey}
-                    className="mt-2 px-4 py-2 text-base rounded"
-                  >
-                    {copiedKey ? "✓ Copied!" : "Copy to Clipboard"}
-                  </button>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={copyExportedKey}
+                      className="px-4 py-2 text-base rounded"
+                    >
+                      {copiedKey ? "✓ Copied!" : "Copy to Clipboard"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        const blob = new Blob([privateKey], {
+                          type: "text/plain",
+                        });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `sealednote-private-key-${
+                          user.username || "export"
+                        }.txt`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      }}
+                      className="px-4 py-2 text-base rounded"
+                    >
+                      Download as .txt
+                    </button>
+                  </div>
                 </div>
-
-                <button
-                  onClick={() => {
-                    setShowExportModal(false);
-                    setExportPassword("");
-                    setExportedKey("");
-                    setExportError(null);
-                  }}
-                  className="w-full px-4 py-2 text-base bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                >
-                  Close
-                </button>
               </>
+            ) : (
+              <p className="text-sm text-gray-600 mb-4">
+                Your private key is not currently loaded. Please unlock your
+                inbox first.
+              </p>
             )}
+
+            <button
+              onClick={() => {
+                setShowExportModal(false);
+                setCopiedKey(false);
+              }}
+              className="w-full px-4 py-2 text-base bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

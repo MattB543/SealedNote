@@ -14,10 +14,25 @@ CREATE TABLE IF NOT EXISTS public.users (
   ai_reviewer_enabled BOOLEAN NOT NULL DEFAULT true,
   auto_delete_mean BOOLEAN NOT NULL DEFAULT false,
   feedback_note TEXT DEFAULT 'Please kindly share your honest thoughts, constructive feedback, or compliments.',
+  username_change_count INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   CONSTRAINT username_lowercase CHECK (username = lower(username)),
-  CONSTRAINT username_allowed_chars CHECK (username ~ '^[a-z0-9-]+$')
+  CONSTRAINT username_allowed_chars CHECK (username ~ '^[a-z0-9-]+$'),
+  CONSTRAINT username_change_limit CHECK (username_change_count <= 3)
 );
+
+-- Track username history to prevent reuse
+CREATE TABLE IF NOT EXISTS public.username_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  username TEXT NOT NULL,
+  changed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  CONSTRAINT username_history_lowercase CHECK (username = lower(username)),
+  CONSTRAINT username_history_allowed_chars CHECK (username ~ '^[a-z0-9-]+$')
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_username_history_unique ON public.username_history(username);
+CREATE INDEX IF NOT EXISTS idx_username_history_user ON public.username_history(user_id);
 
 -- Create feedback table
 CREATE TABLE IF NOT EXISTS public.feedback (
@@ -42,6 +57,7 @@ CREATE TABLE IF NOT EXISTS public.feedback_links (
 
 -- Enable Row Level Security
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.username_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.feedback_links ENABLE ROW LEVEL SECURITY;
 
@@ -54,6 +70,10 @@ CREATE POLICY "Users can insert own profile" ON public.users
 
 CREATE POLICY "Users can update own profile" ON public.users
   FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+
+-- Username history policies (read-only for users)
+CREATE POLICY "Users can view username history" ON public.username_history
+  FOR SELECT USING (true); -- Public to check if username is taken
 
 -- Feedback policies
 CREATE POLICY "Users can view own feedback" ON public.feedback
@@ -94,6 +114,9 @@ ALTER TABLE public.users
 ALTER TABLE public.users
   ADD COLUMN IF NOT EXISTS feedback_note TEXT;
 
+ALTER TABLE public.users
+  ADD COLUMN IF NOT EXISTS username_change_count INTEGER NOT NULL DEFAULT 0;
+
 UPDATE public.users
 SET feedback_note = 'Please kindly share your honest thoughts, constructive feedback, or compliments.'
 WHERE feedback_note IS NULL;
@@ -128,10 +151,25 @@ ALTER TABLE public.users ADD CONSTRAINT IF NOT EXISTS openrouter_api_key_length 
 ALTER TABLE public.users ADD CONSTRAINT IF NOT EXISTS public_key_length CHECK (length(public_key) <= 2000);
 ALTER TABLE public.users ADD CONSTRAINT IF NOT EXISTS salt_length CHECK (length(salt) <= 100);
 
+-- Note: Authentication uses client-side RSA encryption
+-- Private keys NEVER leave the browser, not even encrypted
+-- The server only stores public keys for encrypting feedback
+
 ALTER TABLE public.feedback ADD CONSTRAINT IF NOT EXISTS encrypted_content_length CHECK (length(encrypted_content) <= 20000);
 ALTER TABLE public.feedback ADD CONSTRAINT IF NOT EXISTS encrypted_reasoning_length CHECK (length(encrypted_reasoning) <= 20000);
 
 ALTER TABLE public.scheduled_feedback ADD CONSTRAINT IF NOT EXISTS sched_encrypted_content_length CHECK (length(encrypted_content) <= 20000);
 ALTER TABLE public.scheduled_feedback ADD CONSTRAINT IF NOT EXISTS sched_encrypted_reasoning_length CHECK (length(encrypted_reasoning) <= 20000);
+ALTER TABLE public.scheduled_feedback ADD CONSTRAINT IF NOT EXISTS sched_deliver_at_future CHECK (deliver_at > NOW());
 
 ALTER TABLE public.feedback_links ADD CONSTRAINT IF NOT EXISTS share_token_length CHECK (length(share_token) >= 3 AND length(share_token) <= 100);
+
+-- Add idempotency columns for scheduled feedback dispatch
+ALTER TABLE public.scheduled_feedback 
+  ADD COLUMN IF NOT EXISTS claimed_by UUID,
+  ADD COLUMN IF NOT EXISTS claimed_at TIMESTAMP WITH TIME ZONE;
+
+-- Index for efficient claiming of unclaimed rows
+CREATE INDEX IF NOT EXISTS idx_scheduled_feedback_claimed 
+  ON public.scheduled_feedback(deliver_at, claimed_by) 
+  WHERE claimed_by IS NULL;

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSupabase } from "@/components/SupabaseProvider";
 import { browserCrypto } from "@/lib/crypto-browser";
+import { usePrivateKey } from "@/components/PrivateKeyProvider";
 import Link from "next/link";
 
 interface Feedback {
@@ -24,11 +25,11 @@ interface DecryptedFeedback extends Feedback {
 export default function Dashboard() {
   const { supabase } = useSupabase();
   const router = useRouter();
+  const { privateKey: privateKeyValue } = usePrivateKey();
   const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [decryptedFeedback, setDecryptedFeedback] = useState<
     DecryptedFeedback[]
   >([]);
-  const [privateKey, setPrivateKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
@@ -43,7 +44,7 @@ export default function Dashboard() {
       const { data: authData, error: authError } =
         await supabase.auth.getUser();
       if (authError || !authData?.user) {
-        router.push("/auth/signin");
+        router.push("/");
         return;
       }
       const userId = authData.user.id;
@@ -124,13 +125,11 @@ export default function Dashboard() {
     const init = async () => {
       try {
         if (typeof window === "undefined") return;
-        const sessionKey = sessionStorage.getItem("ff_session_private_key");
-        if (!sessionKey) {
+        if (!privateKeyValue) {
           redirected = true;
           router.replace("/auth/unlock");
           return;
         }
-        setPrivateKey(sessionKey);
         await Promise.all([loadUserData(), loadFeedback()]);
       } catch (err: any) {
         setError(err.message ?? "Failed to load dashboard");
@@ -146,10 +145,10 @@ export default function Dashboard() {
     return () => {
       redirected = true;
     };
-  }, [loadFeedback, loadUserData, router]);
+  }, [loadFeedback, loadUserData, privateKeyValue, router]);
 
   useEffect(() => {
-    if (!privateKey || feedback.length === 0) {
+    if (!privateKeyValue || feedback.length === 0) {
       if (feedback.length === 0) {
         setDecryptedFeedback([]);
       }
@@ -158,14 +157,14 @@ export default function Dashboard() {
 
     const run = async () => {
       try {
-        await decryptAllFeedback(privateKey);
+        await decryptAllFeedback(privateKeyValue);
       } catch (err: any) {
         setError(err.message ?? "Failed to decrypt feedback");
       }
     };
 
     void run();
-  }, [privateKey, decryptAllFeedback, feedback.length]);
+  }, [privateKeyValue, decryptAllFeedback, feedback.length]);
 
   const markAsRead = async (feedbackId: string) => {
     try {
@@ -225,82 +224,87 @@ export default function Dashboard() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-off-white rounded-lg shadow-sm p-4 sm:p-6 mb-6 paper-bg">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-            <div className="inline-flex items-center gap-3 p-2 px-3 bg-gray-50 rounded-lg w-fit">
-              <a
-                href={feedbackLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-md text-gray-600 underline sm:no-underline hover:text-gray-800"
-                onClick={(e) => {
-                  if (window.innerWidth >= 640) {
-                    e.preventDefault();
-                  }
-                }}
-              >
-                {feedbackLink}
-              </a>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={copyLink}
-                  className="px-2 py-0.5 h-[22px] sm:px-3 sm:py-1 sm:h-[28px] text-sm !bg-gray-100 !text-[#424133] rounded hover:!bg-gray-200"
+            <div>
+              <p className="text-xs text-gray-400 mb-1 px-2">
+                Share this link with your network to gather feedback
+              </p>
+              <div className="inline-flex items-center gap-3 p-2 px-3 bg-gray-50 rounded-lg w-fit">
+                <a
+                  href={feedbackLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-md text-gray-600 underline sm:no-underline hover:text-gray-800"
+                  onClick={(e) => {
+                    if (window.innerWidth >= 640) {
+                      e.preventDefault();
+                    }
+                  }}
                 >
-                  {copied ? (
+                  {feedbackLink}
+                </a>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={copyLink}
+                    className="px-2 py-0.5 h-[22px] sm:px-3 sm:py-1 sm:h-[28px] text-sm !bg-gray-100 !text-[#424133] rounded hover:!bg-gray-200"
+                  >
+                    {copied ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="icon icon-tabler icons-tabler-outline icon-tabler-check sm:w-[18px] sm:h-[18px]"
+                      >
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                        <path d="M5 12l5 5l10 -10" />
+                      </svg>
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="icon icon-tabler icons-tabler-outline icon-tabler-copy sm:w-[18px] sm:h-[18px]"
+                      >
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                        <path d="M7 7m0 2.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z" />
+                        <path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => window.open(feedbackLink, "_blank")}
+                    className="hidden sm:flex px-3 py-1 text-sm h-[28px] !bg-gray-100 !text-[#424133] rounded hover:!bg-gray-200"
+                  >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="icon icon-tabler icons-tabler-outline icon-tabler-check sm:w-[18px] sm:h-[18px]"
-                    >
-                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                      <path d="M5 12l5 5l10 -10" />
-                    </svg>
-                  ) : (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="14"
-                      height="14"
+                      width="18"
+                      height="18"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="1.8"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="icon icon-tabler icons-tabler-outline icon-tabler-copy sm:w-[18px] sm:h-[18px]"
+                      className="icon icon-tabler icons-tabler-outline icon-tabler-external-link"
                     >
                       <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                      <path d="M7 7m0 2.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z" />
-                      <path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1" />
+                      <path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" />
+                      <path d="M11 13l9 -9" />
+                      <path d="M15 4h5v5" />
                     </svg>
-                  )}
-                </button>
-                <button
-                  onClick={() => window.open(feedbackLink, "_blank")}
-                  className="hidden sm:flex px-3 py-1 text-sm h-[28px] !bg-gray-100 !text-[#424133] rounded hover:!bg-gray-200"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="icon icon-tabler icons-tabler-outline icon-tabler-external-link"
-                  >
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                    <path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" />
-                    <path d="M11 13l9 -9" />
-                    <path d="M15 4h5v5" />
-                  </svg>
-                </button>
+                  </button>
+                </div>
               </div>
             </div>
             <Link
@@ -363,7 +367,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {privateKey && (
+          {privateKeyValue && (
             <div className="space-y-4">
               {activeTab === "inbox" && (
                 <>

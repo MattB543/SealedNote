@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSupabase } from "@/components/SupabaseProvider";
 import { useState } from "react";
 
@@ -19,7 +20,6 @@ export function SignInForm() {
       if (!email) throw new Error("Enter your email");
 
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-      console.log("Sign in attempt - Redirect URL:", `${appUrl}/auth/callback`);
 
       const { error } = await supabase.auth.signInWithOtp({
         email,
@@ -28,12 +28,10 @@ export function SignInForm() {
         },
       });
       if (error) {
-        console.error("Supabase auth error:", error);
         throw error;
       }
       setMessage("Magic link sent! Check your email to continue.");
     } catch (err: any) {
-      console.error("Sign in error:", err);
       setError(err.message || "Authentication failed");
     } finally {
       setLoading(false);

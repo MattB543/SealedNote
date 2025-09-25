@@ -39,7 +39,11 @@ export default function SubmitFeedback() {
           `/api/feedback/resolve-token?token=${encodeURIComponent(token)}`
         );
         if (!res.ok) {
-          setError("Invalid or expired link");
+          if (res.status === 404) {
+            setError("This feedback link does not exist. Please check the URL and try again.");
+          } else {
+            setError("Invalid or expired link");
+          }
           return;
         }
         const data = await res.json();
@@ -278,24 +282,59 @@ export default function SubmitFeedback() {
     );
   }
 
+  // Show error page if link doesn't exist
+  if (error && error.includes("does not exist")) {
+    return (
+      <div className="min-h-full flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-off-white rounded-lg shadow-lg p-6 sm:p-8 text-center">
+          <div className="mb-4">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+              <svg
+                className="w-8 h-8 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Feedback Link Not Found</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <Link
+            href="/"
+            className="text-[#424133] text-sm underline"
+          >
+            Learn more about SealedNote
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-full flex items-center justify-center p-4">
       <div className="max-w-lg w-full bg-off-white rounded-lg shadow-lg p-6 sm:p-8">
         <h2 className="text-2xl font-bold mb-4">
-          {username
-            ? `Send anonymous feedback to ${username}`
-            : "Send anonymous feedback"}
+          Send anonymous feedback to {username || "someone"}
         </h2>
         <div className="mb-4 space-y-2">
           <div className="text-gray-700 text-md bg-gray-50 border border-gray-200 rounded p-3">
-            {feedbackNote}
-            <p className="text-md text-gray-500 mt-2 text-right">
-              - {username}
-            </p>
+            {feedbackNote || "Loading their message..."}
+            {username && (
+              <p className="text-md text-gray-500 mt-2 text-right">
+                - {username}
+              </p>
+            )}
           </div>
         </div>
 
-        {error && (
+        {error && !error.includes("does not exist") && (
           <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
             {error}
           </div>

@@ -14,42 +14,42 @@ export interface Database {
         Row: {
           id: string
           email: string
-          username: string
-          public_key: string
-          salt: string
-          custom_prompt: string | null
-          openrouter_api_key: string | null
-          ai_filter_enabled: boolean
-          ai_reviewer_enabled: boolean
-          auto_delete_mean: boolean
+        username: string
+          public_key: string | null
+          salt: string | null
+        custom_prompt: string | null
+        openrouter_api_key: string | null
+        ai_filter_enabled: boolean
+        ai_reviewer_enabled: boolean
+        auto_delete_mean: boolean
           feedback_note: string | null
           created_at: string
         }
         Insert: {
           id?: string
-          email: string
-          username: string
-          public_key: string
-          salt: string
-          custom_prompt?: string | null
-          openrouter_api_key?: string | null
-          ai_filter_enabled?: boolean
-          ai_reviewer_enabled?: boolean
-          auto_delete_mean?: boolean
+        email: string
+        username: string
+          public_key?: string | null
+          salt?: string | null
+        custom_prompt?: string | null
+        openrouter_api_key?: string | null
+        ai_filter_enabled?: boolean
+        ai_reviewer_enabled?: boolean
+        auto_delete_mean?: boolean
           feedback_note?: string | null
           created_at?: string
         }
         Update: {
           id?: string
-          email?: string
-          username?: string
-          public_key?: string
-          salt?: string
-          custom_prompt?: string | null
-          openrouter_api_key?: string | null
-          ai_filter_enabled?: boolean
-          ai_reviewer_enabled?: boolean
-          auto_delete_mean?: boolean
+        email?: string
+        username?: string
+          public_key?: string | null
+          salt?: string | null
+        custom_prompt?: string | null
+        openrouter_api_key?: string | null
+        ai_filter_enabled?: boolean
+        ai_reviewer_enabled?: boolean
+        auto_delete_mean?: boolean
           feedback_note?: string | null
           created_at?: string
         }

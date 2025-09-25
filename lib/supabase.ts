@@ -12,7 +12,7 @@ export function createServerSupabaseClient() {
     throw new Error("Missing Supabase environment variables");
   }
 
-  return createClient<Database>(supabaseUrl, supabaseServiceKey, {
+  return createClient<Database, "public">(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
