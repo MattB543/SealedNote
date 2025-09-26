@@ -9,6 +9,7 @@ import { DEFAULT_FEEDBACK_NOTE } from "@/lib/constants";
 export default function SubmitFeedback() {
   const { token } = (useParams() as { token: string }) || { token: "" };
   const [content, setContent] = useState("");
+  const [context, setContext] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,6 +17,7 @@ export default function SubmitFeedback() {
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [aiEnabled, setAiEnabled] = useState<boolean>(true);
   const [reviewerEnabled, setReviewerEnabled] = useState<boolean>(true);
+  const [contextProofEnabled, setContextProofEnabled] = useState<boolean>(true);
   const [feedbackNote, setFeedbackNote] = useState<string>(
     DEFAULT_FEEDBACK_NOTE
   );
@@ -40,7 +42,9 @@ export default function SubmitFeedback() {
         );
         if (!res.ok) {
           if (res.status === 404) {
-            setError("This feedback link does not exist. Please check the URL and try again.");
+            setError(
+              "This feedback link does not exist. Please check the URL and try again."
+            );
           } else {
             setError("Invalid or expired link");
           }
@@ -51,6 +55,7 @@ export default function SubmitFeedback() {
         setPublicKey(data.public_key);
         setAiEnabled(Boolean(data.ai_filter_enabled));
         setReviewerEnabled(Boolean(data.ai_reviewer_enabled));
+        setContextProofEnabled(Boolean(data.context_proof_enabled));
         setFeedbackNote(
           (data.feedback_note as string) || DEFAULT_FEEDBACK_NOTE
         );
@@ -125,6 +130,9 @@ export default function SubmitFeedback() {
       }
       if (aiEnabled) {
         body.content = finalText;
+        if (context.trim()) {
+          body.context = context.trim();
+        }
       } else {
         if (!publicKey) throw new Error("Missing recipient key");
         const encrypted_content = await browserCrypto.encryptWithPublicKey(
@@ -135,9 +143,15 @@ export default function SubmitFeedback() {
           "AI filtering disabled by recipient",
           publicKey
         );
+        const encrypted_context = context.trim()
+          ? await browserCrypto.encryptWithPublicKey(context.trim(), publicKey)
+          : null;
         body.isEncrypted = true;
         body.encrypted_content = encrypted_content;
         body.encrypted_reasoning = encrypted_reasoning;
+        if (encrypted_context) {
+          body.encrypted_context = encrypted_context;
+        }
       }
 
       const response = await fetch("/api/feedback/submit", {
@@ -230,7 +244,7 @@ export default function SubmitFeedback() {
   if (submitted) {
     return (
       <div className="min-h-full flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-off-white rounded-lg shadow-lg p-6 sm:p-8 text-center">
+        <div className="max-w-xl w-full bg-off-white rounded-lg shadow-lg p-6 sm:p-8 text-center">
           <div className="mb-4">
             <div className="w-16 h-16 bg-[#42413315] rounded-full flex items-center justify-center mx-auto">
               <svg
@@ -306,10 +320,7 @@ export default function SubmitFeedback() {
           </div>
           <h2 className="text-2xl font-bold mb-2">Feedback Link Not Found</h2>
           <p className="text-gray-600 mb-6">{error}</p>
-          <Link
-            href="/"
-            className="text-[#424133] text-sm underline"
-          >
+          <Link href="/" className="text-[#424133] text-sm underline">
             Learn more about SealedNote
           </Link>
         </div>
@@ -351,7 +362,7 @@ export default function SubmitFeedback() {
               }
             }}
             placeholder="Write your message here..."
-            className="w-full h-48 px-4 py-3 border border-gray-300 rounded-lg resize-none"
+            className="w-full h-36 px-4 py-3 border border-gray-300 rounded-lg resize-none"
             maxLength={1000}
           />
           {content.length >= 800 && (
@@ -360,6 +371,31 @@ export default function SubmitFeedback() {
             </p>
           )}
         </div>
+
+        {contextProofEnabled && (
+          <div className="mb-4">
+            <label className="block text-md font-medium text-gray-700 mb-1">
+              Why should they take your feedback seriously? (optional)
+            </label>
+            <p className="text-sm text-gray-500 mb-2">
+              Without revealing who you are, explain why you understand their
+              situation, goals, or perspective. Try to establish credibility
+              while maintaining anonymity.
+            </p>
+            <textarea
+              value={context}
+              onChange={(e) => setContext(e.target.value)}
+              placeholder="e.g., I understand your focus on... I know you value... I've seen you try..."
+              className="w-full h-24 px-4 py-3 border border-gray-300 rounded-lg resize-none"
+              maxLength={500}
+            />
+            {context.length >= 400 && (
+              <p className="text-sm text-gray-500 mt-1">
+                {context.length}/500 characters
+              </p>
+            )}
+          </div>
+        )}
 
         <CoachPanel />
 
@@ -437,25 +473,10 @@ export default function SubmitFeedback() {
             </div>
           )}
         </div>
-        <div className="mb-6 text-sm text-gray-600 flex flex-col sm:flex-row gap-2 sm:justify-between sm:items-baseline">
-          <p className="flex items-center gap-2">
-            <span>✓</span>
-            Anonymous
-          </p>
-          <p className="flex items-center gap-2">
-            <span>✓</span>
-            Encrypted
-          </p>
-          <p className="flex items-center gap-2">
-            <span>✓</span>
-            Only readable by recipient
-          </p>
-        </div>
-
         <button
           onClick={handleSubmit}
           disabled={submitting || !content.trim()}
-          className="w-full py-3 font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-3 mt-2 font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting
             ? "Encrypting and verifying..."
@@ -464,6 +485,20 @@ export default function SubmitFeedback() {
             ? "Send as-is"
             : "Send Feedback"}
         </button>
+        <div className="mt-6 text-sm text-gray-500 flex flex-col sm:flex-row gap-2 sm:justify-between sm:items-baseline">
+          <p className="flex items-center gap-1">
+            <span>✓</span>
+            Anonymous
+          </p>
+          <p className="flex items-center gap-1">
+            <span>✓</span>
+            Only readable by recipient
+          </p>
+          <p className="flex items-center gap-1">
+            <span>✓</span>
+            Encrypted
+          </p>
+        </div>
       </div>
     </div>
   );

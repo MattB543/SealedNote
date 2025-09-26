@@ -16,13 +16,13 @@ export interface Database {
           email: string
         username: string
           public_key: string | null
-          salt: string | null
         custom_prompt: string | null
         openrouter_api_key: string | null
         ai_filter_enabled: boolean
         ai_reviewer_enabled: boolean
         auto_delete_mean: boolean
           feedback_note: string | null
+          context_proof_enabled: boolean
           created_at: string
         }
         Insert: {
@@ -30,13 +30,13 @@ export interface Database {
         email: string
         username: string
           public_key?: string | null
-          salt?: string | null
         custom_prompt?: string | null
         openrouter_api_key?: string | null
         ai_filter_enabled?: boolean
         ai_reviewer_enabled?: boolean
         auto_delete_mean?: boolean
           feedback_note?: string | null
+          context_proof_enabled?: boolean
           created_at?: string
         }
         Update: {
@@ -44,13 +44,13 @@ export interface Database {
         email?: string
         username?: string
           public_key?: string | null
-          salt?: string | null
         custom_prompt?: string | null
         openrouter_api_key?: string | null
         ai_filter_enabled?: boolean
         ai_reviewer_enabled?: boolean
         auto_delete_mean?: boolean
           feedback_note?: string | null
+          context_proof_enabled?: boolean
           created_at?: string
         }
       }
@@ -60,6 +60,7 @@ export interface Database {
           user_id: string
           encrypted_content: string
           encrypted_reasoning: string
+          encrypted_context: string | null
           is_mean: boolean
           status: 'unread' | 'read' | 'archived'
           created_at: string
@@ -70,6 +71,7 @@ export interface Database {
           user_id: string
           encrypted_content: string
           encrypted_reasoning: string
+          encrypted_context?: string | null
           is_mean: boolean
           status?: 'unread' | 'read' | 'archived'
           created_at?: string
@@ -80,6 +82,7 @@ export interface Database {
           user_id?: string
           encrypted_content?: string
           encrypted_reasoning?: string
+          encrypted_context?: string | null
           is_mean?: boolean
           status?: 'unread' | 'read' | 'archived'
           created_at?: string
@@ -115,6 +118,7 @@ export interface Database {
           user_id: string
           encrypted_content: string
           encrypted_reasoning: string
+          encrypted_context: string | null
           is_mean: boolean
           deliver_at: string
           created_at: string
@@ -124,6 +128,7 @@ export interface Database {
           user_id: string
           encrypted_content: string
           encrypted_reasoning: string
+          encrypted_context?: string | null
           is_mean?: boolean
           deliver_at: string
           created_at?: string
@@ -133,6 +138,7 @@ export interface Database {
           user_id?: string
           encrypted_content?: string
           encrypted_reasoning?: string
+          encrypted_context?: string | null
           is_mean?: boolean
           deliver_at?: string
           created_at?: string

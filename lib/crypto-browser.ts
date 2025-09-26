@@ -1,16 +1,5 @@
 // Browser-side cryptographic utilities (Web Crypto API)
 
-// Generate a random salt (hex) in the browser
-export function generateSalt(): string {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-const PBKDF2_ITERATIONS = 600_000;
-
 export const browserCrypto = {
   // Generate RSA key pair without password (returns PEM strings)
   async generateKeyPairNoPassword(): Promise<{
@@ -30,87 +19,6 @@ export const browserCrypto = {
     const publicKey = await this.exportPublicKey(keyPair.publicKey);
     const privateKeyPem = await this.exportPrivateKey(keyPair.privateKey);
     return { publicKey, privateKey: privateKeyPem };
-  },
-  async encryptPrivateKeyWithPassword(
-    privateKey: string,
-    password: string,
-    salt: string
-  ): Promise<string> {
-    const encoder = new TextEncoder();
-    const keyMaterial = await crypto.subtle.importKey(
-      "raw",
-      encoder.encode(password),
-      "PBKDF2",
-      false,
-      ["deriveKey"]
-    );
-
-    const key = await crypto.subtle.deriveKey(
-      {
-        name: "PBKDF2",
-        salt: encoder.encode(salt + "_priv"),
-        iterations: PBKDF2_ITERATIONS,
-        hash: "SHA-256",
-      },
-      keyMaterial,
-      { name: "AES-GCM", length: 256 },
-      false,
-      ["encrypt"]
-    );
-
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const encrypted = await crypto.subtle.encrypt(
-      { name: "AES-GCM", iv },
-      key,
-      encoder.encode(privateKey)
-    );
-
-    const combined = new Uint8Array(iv.length + encrypted.byteLength);
-    combined.set(iv, 0);
-    combined.set(new Uint8Array(encrypted), iv.length);
-    return btoa(this.uint8ToString(combined));
-  },
-
-  async decryptPrivateKeyWithPassword(
-    encryptedPrivateKey: string,
-    password: string,
-    salt: string
-  ): Promise<string> {
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
-
-    const keyMaterial = await crypto.subtle.importKey(
-      "raw",
-      encoder.encode(password),
-      "PBKDF2",
-      false,
-      ["deriveKey"]
-    );
-    const key = await crypto.subtle.deriveKey(
-      {
-        name: "PBKDF2",
-        salt: encoder.encode(salt + "_priv"),
-        iterations: PBKDF2_ITERATIONS,
-        hash: "SHA-256",
-      },
-      keyMaterial,
-      { name: "AES-GCM", length: 256 },
-      false,
-      ["decrypt"]
-    );
-
-    const combined = Uint8Array.from(atob(encryptedPrivateKey), (c) =>
-      c.charCodeAt(0)
-    );
-    const iv = combined.slice(0, 12);
-    const encrypted = combined.slice(12);
-
-    const decrypted = await crypto.subtle.decrypt(
-      { name: "AES-GCM", iv },
-      key,
-      encrypted
-    );
-    return decoder.decode(decrypted);
   },
 
   async exportPublicKey(key: CryptoKey): Promise<string> {

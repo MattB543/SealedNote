@@ -20,9 +20,10 @@ function pruneBuckets() {
   });
   if (buckets.size > MAX_BUCKETS) {
     const excess = buckets.size - MAX_BUCKETS;
-    const keys = Array.from(buckets.keys());
-    for (let i = 0; i < excess && i < keys.length; i++) {
-      buckets.delete(keys[i]);
+    const entries = Array.from(buckets.entries())
+      .sort((a, b) => a[1].resetAt - b[1].resetAt); // Sort by resetAt ascending (oldest first)
+    for (let i = 0; i < excess && i < entries.length; i++) {
+      buckets.delete(entries[i][0]);
     }
   }
 }
@@ -49,10 +50,12 @@ export async function POST(request: NextRequest) {
     pruneBuckets();
     const {
       content,
+      context,
       shareToken,
       isEncrypted,
       encrypted_content,
       encrypted_reasoning,
+      encrypted_context,
       deliverAt,
       delayRange,
     } = await request.json();
@@ -85,6 +88,14 @@ export async function POST(request: NextRequest) {
     if (content && content.length > 1000) {
       return NextResponse.json(
         { error: "Feedback must be 1000 characters or less" },
+        { status: 400 }
+      );
+    }
+
+    // Match client-side validation exactly
+    if (context && context.length > 500) {
+      return NextResponse.json(
+        { error: "Context must be 500 characters or less" },
         { status: 400 }
       );
     }
@@ -148,6 +159,7 @@ export async function POST(request: NextRequest) {
 
     let encryptedContentOut: string;
     let encryptedReasoningOut: string;
+    let encryptedContextOut: string | null = null;
     let isMean = false;
 
     if (isEncrypted) {
@@ -160,6 +172,7 @@ export async function POST(request: NextRequest) {
       }
       encryptedContentOut = encrypted_content;
       encryptedReasoningOut = encrypted_reasoning;
+      encryptedContextOut = encrypted_context || null;
       isMean = false;
     } else {
       // Server-side classification + encryption path
@@ -179,6 +192,12 @@ export async function POST(request: NextRequest) {
         classification.reasoning,
         recipient.public_key
       );
+      if (context && context.trim()) {
+        encryptedContextOut = encryptWithPublicKey(
+          context.trim(),
+          recipient.public_key
+        );
+      }
       isMean = classification.is_mean;
 
       // Auto-delete: if enabled and classified mean, drop silently
@@ -212,6 +231,7 @@ export async function POST(request: NextRequest) {
           user_id: recipient.id,
           encrypted_content: encryptedContentOut,
           encrypted_reasoning: encryptedReasoningOut,
+          encrypted_context: encryptedContextOut,
           is_mean: isMean,
           deliver_at: scheduledAtIso,
         });
@@ -225,6 +245,7 @@ export async function POST(request: NextRequest) {
           user_id: recipient.id,
           encrypted_content: encryptedContentOut,
           encrypted_reasoning: encryptedReasoningOut,
+          encrypted_context: encryptedContextOut,
           is_mean: isMean,
           status: "unread",
         });
@@ -301,6 +322,7 @@ async function classifyWithOpenRouter(
   const prompt = buildClassificationPrompt(content, customPrompt);
 
   try {
+    // GPT-5-mini was just launched, so it's available
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
       {

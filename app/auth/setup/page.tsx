@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSupabase } from "@/components/SupabaseProvider";
-import { browserCrypto, generateSalt } from "@/lib/crypto-browser";
+import { browserCrypto } from "@/lib/crypto-browser";
 import { DEFAULT_FEEDBACK_NOTE } from "@/lib/constants";
 
 export default function Setup() {
@@ -27,7 +27,6 @@ export default function Setup() {
   // Private key modal states
   const [showPrivateKeyModal, setShowPrivateKeyModal] = useState(false);
   const [privateKeyToDisplay, setPrivateKeyToDisplay] = useState("");
-  const [userSalt, setUserSalt] = useState("");
   const [confirmedSaved, setConfirmedSaved] = useState(false);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
@@ -98,7 +97,6 @@ export default function Setup() {
 
       const payload = prepareSetupPayload();
 
-      const salt = generateSalt();
       const { publicKey, privateKey: rawPrivateKey } =
         await browserCrypto.generateKeyPairNoPassword();
 
@@ -113,7 +111,6 @@ export default function Setup() {
         email: authData.user.email || "",
         username: payload.username,
         public_key: publicKey,
-        salt,
         ai_filter_enabled: payload.aiFilterEnabled,
         ai_reviewer_enabled: payload.aiReviewerEnabled,
         auto_delete_mean: payload.autoDeleteMean,
@@ -143,7 +140,6 @@ export default function Setup() {
       });
 
       setPrivateKeyToDisplay(rawPrivateKey);
-      setUserSalt(salt);
 
       // Store username
       localStorage.setItem("ff_username", payload.username);
@@ -165,9 +161,6 @@ export default function Setup() {
     setTestDecryptionLoading(true);
 
     try {
-      // Store salt for later use
-      localStorage.setItem("ff_salt", userSalt);
-
       // Redirect to unlock to immediately decrypt inbox
       router.push("/auth/unlock");
     } catch (error) {

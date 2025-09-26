@@ -136,6 +136,7 @@ async function coachWithOpenRouter(
 ) {
   const prompt = buildCoachPrompt(content, customPrompt);
   try {
+    // GPT-5-mini was just launched, so it's available
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
       {

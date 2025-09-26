@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
 
     const { data: user, error: userError } = await (supabase as any)
       .from('users')
-      .select('username, public_key, ai_filter_enabled, ai_reviewer_enabled, feedback_note')
+      .select('username, public_key, ai_filter_enabled, ai_reviewer_enabled, context_proof_enabled, feedback_note')
       .eq('id', link.user_id)
       .single()
 
@@ -86,6 +86,7 @@ export async function GET(request: NextRequest) {
       public_key: user.public_key,
       ai_filter_enabled: user.ai_filter_enabled,
       ai_reviewer_enabled: user.ai_reviewer_enabled,
+      context_proof_enabled: user.context_proof_enabled,
       feedback_note: user.feedback_note ?? DEFAULT_FEEDBACK_NOTE,
     })
   } catch (error) {

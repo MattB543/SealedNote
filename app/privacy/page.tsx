@@ -27,18 +27,6 @@ export default function PrivacyPolicy() {
               </svg>
               Back to Home
             </Link>
-
-            <h1 className="text-3xl font-bold text-[#424133] mb-2">
-              Privacy Policy
-            </h1>
-            <p className="text-gray-600">
-              Last updated:{" "}
-              {new Date().toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </p>
           </div>
 
           <div className="prose prose-gray max-w-none">
@@ -78,11 +66,10 @@ export default function PrivacyPolicy() {
                 1) Who is the controller and what does this policy cover?
               </h2>
               <p>
-                SealedNote Inc., a Delaware company, is the controller of
-                information processed through the Service (unless a separate
-                agreement says otherwise). This policy does <strong>not</strong>{" "}
-                cover third‑party websites or services that are not under our
-                control.
+                SealedNote Inc., is the controller of information processed
+                through the Service (unless a separate agreement says
+                otherwise). This policy does <strong>not</strong> cover
+                third‑party websites or services that are not under our control.
               </p>
               <hr />
               <h2

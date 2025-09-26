@@ -7,13 +7,13 @@ CREATE TABLE IF NOT EXISTS public.users (
   email TEXT UNIQUE NOT NULL,
   username TEXT UNIQUE NOT NULL,
   public_key TEXT NOT NULL, -- RSA public key only
-  salt TEXT NOT NULL,
   custom_prompt TEXT,
   openrouter_api_key TEXT,
   ai_filter_enabled BOOLEAN NOT NULL DEFAULT true,
   ai_reviewer_enabled BOOLEAN NOT NULL DEFAULT true,
   auto_delete_mean BOOLEAN NOT NULL DEFAULT false,
   feedback_note TEXT DEFAULT 'Please kindly share your honest thoughts, constructive feedback, or compliments.',
+  context_proof_enabled BOOLEAN NOT NULL DEFAULT true,
   username_change_count INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   CONSTRAINT username_lowercase CHECK (username = lower(username)),
@@ -117,6 +117,9 @@ ALTER TABLE public.users
 ALTER TABLE public.users
   ADD COLUMN IF NOT EXISTS username_change_count INTEGER NOT NULL DEFAULT 0;
 
+ALTER TABLE public.users
+  ADD COLUMN IF NOT EXISTS context_proof_enabled BOOLEAN NOT NULL DEFAULT true;
+
 UPDATE public.users
 SET feedback_note = 'Please kindly share your honest thoughts, constructive feedback, or compliments.'
 WHERE feedback_note IS NULL;
@@ -149,7 +152,6 @@ ALTER TABLE public.users ADD CONSTRAINT IF NOT EXISTS custom_prompt_length CHECK
 ALTER TABLE public.users ADD CONSTRAINT IF NOT EXISTS feedback_note_length CHECK (length(feedback_note) <= 200);
 ALTER TABLE public.users ADD CONSTRAINT IF NOT EXISTS openrouter_api_key_length CHECK (length(openrouter_api_key) <= 500);
 ALTER TABLE public.users ADD CONSTRAINT IF NOT EXISTS public_key_length CHECK (length(public_key) <= 2000);
-ALTER TABLE public.users ADD CONSTRAINT IF NOT EXISTS salt_length CHECK (length(salt) <= 100);
 
 -- Note: Authentication uses client-side RSA encryption
 -- Private keys NEVER leave the browser, not even encrypted
@@ -158,9 +160,17 @@ ALTER TABLE public.users ADD CONSTRAINT IF NOT EXISTS salt_length CHECK (length(
 ALTER TABLE public.feedback ADD CONSTRAINT IF NOT EXISTS encrypted_content_length CHECK (length(encrypted_content) <= 20000);
 ALTER TABLE public.feedback ADD CONSTRAINT IF NOT EXISTS encrypted_reasoning_length CHECK (length(encrypted_reasoning) <= 20000);
 
+-- Add encrypted context column for proving understanding/knowledge
+ALTER TABLE public.feedback ADD COLUMN IF NOT EXISTS encrypted_context TEXT;
+ALTER TABLE public.feedback ADD CONSTRAINT IF NOT EXISTS encrypted_context_length CHECK (length(encrypted_context) <= 10000);
+
 ALTER TABLE public.scheduled_feedback ADD CONSTRAINT IF NOT EXISTS sched_encrypted_content_length CHECK (length(encrypted_content) <= 20000);
 ALTER TABLE public.scheduled_feedback ADD CONSTRAINT IF NOT EXISTS sched_encrypted_reasoning_length CHECK (length(encrypted_reasoning) <= 20000);
 ALTER TABLE public.scheduled_feedback ADD CONSTRAINT IF NOT EXISTS sched_deliver_at_future CHECK (deliver_at > NOW());
+
+-- Add encrypted context column for scheduled feedback
+ALTER TABLE public.scheduled_feedback ADD COLUMN IF NOT EXISTS encrypted_context TEXT;
+ALTER TABLE public.scheduled_feedback ADD CONSTRAINT IF NOT EXISTS sched_encrypted_context_length CHECK (length(encrypted_context) <= 10000);
 
 ALTER TABLE public.feedback_links ADD CONSTRAINT IF NOT EXISTS share_token_length CHECK (length(share_token) >= 3 AND length(share_token) <= 100);
 

@@ -35,9 +35,11 @@ export default async function RootLayout({
 }) {
   const supabase = createServerComponentClient({ cookies });
 
+  // Use getUser() for secure server-side authentication
+  // getSession() is not secure on the server as it doesn't validate the JWT
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // Get nonce from headers set by middleware
   const nonce = headers().get("x-nonce") || "";
@@ -49,7 +51,7 @@ export default async function RootLayout({
       >
         {/* Pass nonce to Next.js Script components */}
         <Script id="nonce-provider" strategy="afterInteractive" nonce={nonce} />
-        <SupabaseProvider session={session}>
+        <SupabaseProvider session={null}>
           <PrivateKeyProvider>
             {/* App shell: header + main + footer without fixed positioning */}
             <div className="min-h-screen flex flex-col">

@@ -208,7 +208,6 @@ export default function Settings() {
       clearPrivateKey();
 
       // Clear local storage
-      localStorage.removeItem("ff_salt");
       localStorage.removeItem("ff_username");
       sessionStorage.removeItem("ff_session_private_key");
 
@@ -450,6 +449,46 @@ export default function Settings() {
               className="px-4 py-2 text-base rounded disabled:opacity-50"
             >
               {user.ai_reviewer_enabled ? "Disable" : "Enable"}
+            </button>
+          </div>
+        </div>
+
+        {/* Context Proof Toggle */}
+        <div className="bg-off-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="flex items-start justify-between gap-4 mb-2">
+            <div>
+              <h2 className="text-lg font-semibold">
+                Context Proof Field
+              </h2>
+              <p className="text-sm text-gray-600">
+                {user.context_proof_enabled
+                  ? "Senders can optionally prove they understand your goals or know you well (e.g., 'I know you value direct communication'), helping establish credibility while maintaining anonymity."
+                  : "Enable to let senders provide optional context about why you should take their feedback seriously."}
+              </p>
+            </div>
+            <button
+              onClick={async () => {
+                const next = !user.context_proof_enabled;
+                try {
+                  setSaving(true);
+                  const res = await fetch("/api/settings/update", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ context_proof_enabled: next }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error || "Failed");
+                  setUser({ ...user, context_proof_enabled: next });
+                  setMessage(`Context proof ${next ? "enabled" : "disabled"}`);
+                  setTimeout(() => setMessage(null), 2000);
+                } catch {
+                } finally {
+                  setSaving(false);
+                }
+              }}
+              className="px-4 py-2 text-base rounded disabled:opacity-50"
+            >
+              {user.context_proof_enabled ? "Disable" : "Enable"}
             </button>
           </div>
         </div>

@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
       ai_filter_enabled,
       ai_reviewer_enabled,
       auto_delete_mean,
+      context_proof_enabled,
       feedback_note,
     } = await request.json();
 
@@ -258,6 +259,16 @@ export async function POST(request: NextRequest) {
         );
       }
       update.auto_delete_mean = auto_delete_mean;
+    }
+
+    if (typeof context_proof_enabled !== "undefined") {
+      if (typeof context_proof_enabled !== "boolean") {
+        return NextResponse.json(
+          { error: "context_proof_enabled must be boolean" },
+          { status: 400 }
+        );
+      }
+      update.context_proof_enabled = context_proof_enabled;
     }
 
     if (Object.keys(update).length === 0) {

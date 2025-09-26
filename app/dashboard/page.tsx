@@ -11,6 +11,7 @@ interface Feedback {
   id: string;
   encrypted_content: string;
   encrypted_reasoning: string;
+  encrypted_context: string | null;
   is_mean: boolean;
   status: string;
   created_at: string;
@@ -20,6 +21,7 @@ interface Feedback {
 interface DecryptedFeedback extends Feedback {
   content?: string;
   reasoning?: string;
+  context?: string | null;
 }
 
 export default function Dashboard() {
@@ -105,12 +107,24 @@ export default function Dashboard() {
               item.encrypted_reasoning,
               key
             );
-            return { ...item, content, reasoning };
+            let context: string | null = null;
+            if (item.encrypted_context) {
+              try {
+                context = await browserCrypto.decrypt(
+                  item.encrypted_context,
+                  key
+                );
+              } catch {
+                context = "[Context decryption failed]";
+              }
+            }
+            return { ...item, content, reasoning, context };
           } catch (err) {
             return {
               ...item,
               content: "[Decryption failed]",
               reasoning: "[Decryption failed]",
+              context: null,
             };
           }
         })
@@ -411,6 +425,18 @@ export default function Dashboard() {
                         </div>
 
                         <p className="text-gray-800 mb-2">{item.content}</p>
+                        {item.context && item.context.trim() && (
+                          <div className="mt-3">
+                            <div className="border-t border-gray-200 pt-3">
+                              <p className="text-sm font-semibold text-gray-700 mb-1">
+                                Why take this feedback seriously:
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {item.context}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                         {item.status === "unread" && (
                           <button
                             onClick={() => markAsRead(item.id)}
@@ -458,6 +484,18 @@ export default function Dashboard() {
                           <strong>Why filtered:</strong> {item.reasoning}
                         </div>
                         <p className="text-gray-800 mb-2">{item.content}</p>
+                        {item.context && item.context.trim() && (
+                          <div className="mt-3">
+                            <div className="border-t border-gray-200 pt-3">
+                              <p className="text-sm font-semibold text-gray-700 mb-1">
+                                Why take this feedback seriously:
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {item.context}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                         {item.status === "unread" && (
                           <button
                             onClick={() => markAsRead(item.id)}

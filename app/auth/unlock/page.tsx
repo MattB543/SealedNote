@@ -10,7 +10,6 @@ export default function Unlock() {
   const router = useRouter();
   const { supabase } = useSupabase();
   const { privateKey, setPrivateKey, clearPrivateKey } = usePrivateKey();
-  const [userSalt, setUserSalt] = useState<string | null>(null);
   const [initializing, setInitializing] = useState(true);
   const [privateKeyInput, setPrivateKeyInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -34,7 +33,7 @@ export default function Unlock() {
         }
         const { data: profile, error: profileError } = await supabase
           .from("users")
-          .select("salt")
+          .select("id")
           .eq("id", uid)
           .maybeSingle();
 
@@ -46,10 +45,6 @@ export default function Unlock() {
           redirected = true;
           router.replace("/auth/setup");
           return;
-        }
-
-        if (profile.salt) {
-          setUserSalt(profile.salt);
         }
       } catch {
       } finally {
@@ -145,7 +140,6 @@ export default function Unlock() {
     clearPrivateKey();
 
     // Clear all localStorage
-    localStorage.removeItem("ff_salt");
     localStorage.removeItem("ff_username");
     sessionStorage.removeItem("ff_session_private_key");
 
